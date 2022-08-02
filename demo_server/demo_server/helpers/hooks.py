@@ -25,8 +25,7 @@ def update_report(dlines):
     with open(REPORTDIR, "w+") as f:
         for func_filename in dlines:
             for (line_no, time_micro) in dlines[func_filename]:
-                print("{}:{}:{}".format(time_micro, func_filename, line_no),
-                      file=f)
+                print(f"{time_micro}:{func_filename}:{line_no}", file=f)
         f.close()
 
 

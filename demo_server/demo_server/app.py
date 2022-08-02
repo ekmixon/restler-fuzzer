@@ -57,7 +57,10 @@ def main():
     initialize_app(app)
     # with app.app_context():
     #     db.create_all()
-    log.info('>>>>> Starting development server at http://{}/api/ <<<<<'.format(app.config['SERVER_NAME']))
+    log.info(
+        f">>>>> Starting development server at http://{app.config['SERVER_NAME']}/api/ <<<<<"
+    )
+
     app.run(threaded=True, use_reloader=False, debug=settings.FLASK_DEBUG)
 
 if __name__ == "__main__":

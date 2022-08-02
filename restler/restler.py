@@ -145,16 +145,9 @@ def get_checker_list(req_collection, fuzzing_requests, enable_list, disable_list
     second_list = [x.lower() for x in second_list]
 
     if '*' in second_list:
-        second_list = []
-        for checker in available_checkers:
-            second_list.append(checker.friendly_name)
-    # If the second list (priority list) is set to all,
-    # do not use the first list
+        second_list = [checker.friendly_name for checker in available_checkers]
     elif '*' in first_list:
-        first_list = []
-        for checker in available_checkers:
-            first_list.append(checker.friendly_name)
-
+        first_list = [checker.friendly_name for checker in available_checkers]
     # Iterate through each checker and search for its friendly name
     # in each list of enabled/disabled
     for checker in available_checkers:

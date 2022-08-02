@@ -141,10 +141,7 @@ class Sequence(object):
         @rtype : List
 
         """
-        seq_definition = []
-        for request in self.requests:
-            seq_definition.append(request.definition)
-        return seq_definition
+        return [request.definition for request in self.requests]
 
     @property
     def hex_definition(self):
@@ -154,10 +151,7 @@ class Sequence(object):
         @rtype : Str
 
         """
-        seq_hex_definition = []
-        for request in self.requests:
-            seq_hex_definition.append(request.hex_definition)
-
+        seq_hex_definition = [request.hex_definition for request in self.requests]
         return str_to_hex_def("".join(seq_hex_definition))
 
     @property
@@ -219,9 +213,10 @@ class Sequence(object):
         @return: A string describing the unique combination ID for this sequence
         @rtype : str
         """
-        combination_ids = [ f"{req.method_endpoint_hex_definition}_{str(req._current_combination_id)}" \
-                            for req in self.requests ]
-        return combination_ids
+        return [
+            f"{req.method_endpoint_hex_definition}_{str(req._current_combination_id)}"
+            for req in self.requests
+        ]
 
     @property
     def prefix(self):
@@ -231,9 +226,7 @@ class Sequence(object):
         @return: The prefix sequence
         @rtype : Sequence
         """
-        if len(self.requests) < 1:
-            return Sequence([])
-        return Sequence(self.requests[:-1])
+        return Sequence([]) if len(self.requests) < 1 else Sequence(self.requests[:-1])
 
     @property
     def prefix_combination_id(self):
@@ -253,10 +246,7 @@ class Sequence(object):
         @rtype : Bool
 
         """
-        for request in self.requests:
-            if request.is_destructor():
-                return True
-        return False
+        return any(request.is_destructor() for request in self.requests)
 
     def is_empty_sequence(self):
         """ Helper to decide if current sequence is empty.
@@ -319,7 +309,7 @@ class Sequence(object):
 
         # for clarity reasons, don't log requests whose render iterator is over
         if request._current_combination_id <\
-                request.num_combinations(candidate_values_pool):
+                    request.num_combinations(candidate_values_pool):
             CUSTOM_LOGGING(self, candidate_values_pool)
 
         self._sent_request_data_list = []
@@ -327,8 +317,7 @@ class Sequence(object):
         datetime_format = "%Y-%m-%d %H:%M:%S"
         response_datetime_str = None
         timestamp_micro = None
-        for rendered_data, parser, tracked_parameters in\
-                request.render_iter(candidate_values_pool,
+        for rendered_data, parser, tracked_parameters in request.render_iter(candidate_values_pool,
                                     skip=request._current_combination_id,
                                     preprocessing=preprocessing):
             # Hold the lock (because other workers may be rendering the same
@@ -343,8 +332,7 @@ class Sequence(object):
 
             # Skip the loop and don't forget to increase the counter.
             if should_skip:
-                RAW_LOGGING("Skipping rendering: {}".\
-                            format(request._current_combination_id))
+                RAW_LOGGING(f"Skipping rendering: {request._current_combination_id}")
                 request._current_combination_id += 1
                 continue
 
@@ -366,7 +354,7 @@ class Sequence(object):
                 last_tested_request_idx = i
                 prev_request = self.requests[i]
                 prev_rendered_data, prev_parser, tracked_parameters =\
-                    prev_request.render_current(candidate_values_pool,
+                        prev_request.render_current(candidate_values_pool,
                     preprocessing=preprocessing)
 
                 request.update_tracked_parameters(tracked_parameters)
@@ -374,7 +362,7 @@ class Sequence(object):
                 # substitute reference placeholders with resolved values
                 if not Settings().ignore_dependencies:
                     prev_rendered_data =\
-                        self.resolve_dependencies(prev_rendered_data)
+                            self.resolve_dependencies(prev_rendered_data)
 
                 prev_req_async_wait = Settings().get_max_async_resource_creation_time(prev_request.request_id)
                 prev_producer_timing_delay = Settings().get_producer_timing_delay(prev_request.request_id)
@@ -425,8 +413,8 @@ class Sequence(object):
                    break
 
                 rendering_is_valid = not prev_parser_threw_exception\
-                    and not resource_error\
-                    and prev_response.has_valid_code()
+                        and not resource_error\
+                        and prev_response.has_valid_code()
 
                 if not rendering_is_valid:
                    logger.write_to_main("Error: Invalid rendering occurred during valid sequence re-rendering.\n")
@@ -500,8 +488,8 @@ class Sequence(object):
             self.append_data_to_sent_list(rendered_data, parser, response, max_async_wait_time=req_async_wait)
 
             rendering_is_valid = not parser_exception_occurred\
-                and not resource_error\
-                and response.has_valid_code()
+                    and not resource_error\
+                    and response.has_valid_code()
 
             # Record the time at which the response was received
             datetime_now = datetime.datetime.now(datetime.timezone.utc)
@@ -543,22 +531,20 @@ class Sequence(object):
             if lock is not None:
                 lock.release()
 
-            # return a rendered clone if response indicates a valid status code
             if rendering_is_valid or Settings().ignore_feedback:
                 return RenderedSequence(duplicate, valid=True, final_request_response=response,
                                         response_datetime=response_datetime_str)
-            else:
-                information = None
-                if response.has_valid_code():
-                    if parser_exception_occurred:
-                        information = FailureInformation.PARSER
-                    elif resource_error:
-                        information = FailureInformation.RESOURCE_CREATION
-                elif response.has_bug_code():
-                    information = FailureInformation.BUG
-                return RenderedSequence(duplicate, valid=False, failure_info=information,
-                                        final_request_response=response,
-                                        response_datetime=response_datetime_str)
+            information = None
+            if response.has_valid_code():
+                if parser_exception_occurred:
+                    information = FailureInformation.PARSER
+                elif resource_error:
+                    information = FailureInformation.RESOURCE_CREATION
+            elif response.has_bug_code():
+                information = FailureInformation.BUG
+            return RenderedSequence(duplicate, valid=False, failure_info=information,
+                                    final_request_response=response,
+                                    response_datetime=response_datetime_str)
 
         return RenderedSequence(None)
 
@@ -741,8 +727,8 @@ class RenderedSequenceCache(object):
 
         self.add(sequence, True)
 
-        for idx in range(len(sequence.requests[0:-1])):
-            prefix_seq = Sequence(sequence.requests[0:idx+1])
+        for idx in range(len(sequence.requests[:-1])):
+            prefix_seq = Sequence(sequence.requests[:idx+1])
             self.add(prefix_seq, True)
 
     def add_invalid_sequence(self, sequence):
@@ -777,7 +763,7 @@ class RenderedSequenceCache(object):
         """
         found_prefix = False
         for seq_len in range(len(req_list), 0, -1):
-            prefix_seq = Sequence(req_list[0:seq_len])
+            prefix_seq = Sequence(req_list[:seq_len])
             seq_cache = self.__get_seq_cache(prefix_seq)
 
             for valid in [True, False]:

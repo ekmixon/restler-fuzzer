@@ -17,11 +17,6 @@ def parse_serviceuserpost(data, **kwargs):
         headers = kwargs['headers']
 
 
-    # Parse body if needed
-    if data:
-
-        pass
-
     # Try to extract each dynamic object
 
 
@@ -31,20 +26,16 @@ def parse_serviceuserpost(data, **kwargs):
 
         try:
             temp_7262 = str(headers["userId"])
-            
+
         except Exception as error:
             # This is not an error, since some properties are not always returned
             pass
 
-        pass
-        
     # If no dynamic objects were extracted, throw.
     if not (temp_7262):
         raise ResponseParsingException("Error: all of the expected dynamic objects were not present in the response.")
 
-    # Set dynamic variables
-    if temp_7262:
-        dependencies.set_variable("_service_user_post_userId_header", temp_7262)
+    dependencies.set_variable("_service_user_post_userId_header", temp_7262)
 
 req_collection = requests.RequestCollection([])
 # Endpoint: /service/user, method: Post

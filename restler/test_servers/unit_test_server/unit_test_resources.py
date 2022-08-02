@@ -31,8 +31,8 @@ class UnitTestResource(ResourceBase):
         if body:
             body = json.loads(body)
         if type in self._children:
-            if self._children[type] == None:
-                self._children[type] = dict()
+            if self._children[type] is None:
+                self._children[type] = {}
             try:
                 new_resource = Factory.get_resource_object(type, name, body)
                 self._children[type][name] = new_resource
@@ -51,14 +51,14 @@ class UnitTestResource(ResourceBase):
         # Return all of the dynamic objects of the parent types.
         # This returns in the format:
         #  {"<type>": {"<resource-name>": {"name": "<resource-name>"}, ...}}
-        ret_list = dict()
+        ret_list = {}
         for type in self._children:
             # Don't return the test resource data with this call.
             # This is mostly because it would be annoying to keep updating
             # The unit tests every time we add a new test resource. We already
             # know that the get_root_data logic is working.
             if type not in Root_Test_Resource_Types:
-                ret_list[type] = dict()
+                ret_list[type] = {}
                 if self._children[type] is not None:
                     for child in self._children[type]:
                         ret_list[type][child] = self._children[type][child].data
@@ -74,7 +74,7 @@ class UnitTestResource(ResourceBase):
 
         """
         if type in self._children and\
-        name in self._children[type]:
+            name in self._children[type]:
             # If testing useafterfreechecker, don't delete the resource
             if type != 'useafterfreetest':
                 del self._children[type][name]
@@ -247,8 +247,8 @@ class ResourceHierarchyTester_Parent(UnitTestResource):
             except:
                 raise InvalidBody
         if type in self._children:
-            if self._children[type] == None:
-                self._children[type] = dict()
+            if self._children[type] is None:
+                self._children[type] = {}
             new_resource = Factory.get_resource_object(type, name, body)
             self._children[type][name] = new_resource
             # Add the child resource to the cache, so it's accessible from any parent resource
@@ -291,7 +291,7 @@ class ResourceHierarchyTester_Parent(UnitTestResource):
 
         """
         if type in self._children and\
-        name in self._children[type]:
+            name in self._children[type]:
             del self._children[type][name]
             del ResourceHierarchyTester_Parent._Child_Cache[name]
         else:

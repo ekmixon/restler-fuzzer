@@ -33,8 +33,8 @@ def delete_create_once_resources(destructors, fuzzing_requests):
 
     logger.write_to_main("\nRendering for create-once resource destructors:\n")
 
+    status_codes = []
     for destructor in destructors:
-        status_codes = []
         try:
             logger.write_to_main(f"{formatting.timestamp()}: Endpoint - {destructor.endpoint_no_dynamic_objects}")
             logger.write_to_main(f"{formatting.timestamp()}: Hex Def - {destructor.method_endpoint_hex_definition}")
@@ -49,23 +49,19 @@ def delete_create_once_resources(destructors, fuzzing_requests):
             logger.format_rendering_stats_definition(
                 destructor, GrammarRequestCollection().candidate_values_pool
             )
-            if Settings().in_smoke_test_mode():
-                if renderings.sequence:
-                    renderings.sequence.last_request.stats.request_order = 'Postprocessing'
-                    renderings.sequence.last_request.stats.set_all_stats(renderings)
-                    logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
+            if Settings().in_smoke_test_mode() and renderings.sequence:
+                renderings.sequence.last_request.stats.request_order = 'Postprocessing'
+                renderings.sequence.last_request.stats.set_all_stats(renderings)
+                logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
 
         except Exception as error:
             msg = f"Failed to delete create_once resource: {error!s}"
             logger.raw_network_logging(msg)
             logger.write_to_main(msg, print_to_console=True)
-            if settings.in_smoke_test_mode():
-                if renderings.sequence:
-                    renderings.sequence.last_request.stats.request_order = 'Postprocessing'
-                    renderings.sequence.last_request.stats.set_all_stats(renderings)
-                    logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
-
-            pass
+            if settings.in_smoke_test_mode() and renderings.sequence:
+                renderings.sequence.last_request.stats.request_order = 'Postprocessing'
+                renderings.sequence.last_request.stats.set_all_stats(renderings)
+                logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
 
     Monitor().current_fuzzing_generation += 1
 

@@ -104,12 +104,7 @@ class GarbageCollectorLogParserTest(unittest.TestCase):
         req1 = ParsedRequest('DELETE /resourcehierarchytest/resourcehierarchyTest-ed70be9d51 HTTP/1.1\r\nContent-Length: 0\r\n\r\n')
         req2 = ParsedRequest('DELETE /resourcehierarchytest/resourcehierarchyTest-ef837e2d50 HTTP/1.1\r\nContent-Length: 0\r\n\r\n')
         req3 = ParsedRequest('DELETE /resourcehierarchytest/resourcehierarchyTest-123456 HTTP/1.1\r\nContent-Length: 0\r\n\r\n')
-        req_set = {
-            req1,
-            req1,
-            req2,
-            req2
-        }
+        req_set = {req1, req2}
         self.assertEqual(parser._req_set, req_set)
         # Test shortened list
         req_set.remove(req2)

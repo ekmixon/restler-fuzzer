@@ -125,7 +125,7 @@ class FuzzingLogParser(LogParser):
                 found_count = 0
                 for idx, right in enumerate(right_seq_list_copy):
                     if left.requests == right.requests and \
-                        left.checker_requests == right.checker_requests:
+                            left.checker_requests == right.checker_requests:
                         found = True
                         found_idx = idx
                         found_count += 1
@@ -192,9 +192,7 @@ class FuzzingLogParser(LogParser):
         def is_seq_or_checker_start(line):
             if GENERATION in line and RENDERING_SEQUENCE in line:
                 return True
-            if CHECKER_START in line:
-                return True
-            return False
+            return CHECKER_START in line
 
         with open(self._path, 'r') as file:
             try:
@@ -291,11 +289,9 @@ class GarbageCollectorLogParser(LogParser):
         """
         with open(self._path, 'r') as file:
             try:
-                line = file.readline()
-                while line:
+                while line := file.readline():
                     if SENDING in line:
                         self._req_set.add(self._get_request(line, True))
-                    line = file.readline()
             except Exception as err:
                 print("Failed to read garbage collector log. Log was not a complete test log.\n"
                       f"{err!s}")
@@ -312,7 +308,7 @@ class BugLogParser(LogParser):
         """
         super().__init__(path)
         # key = bug type, value = list(tuple(ParsedSequence, reproduced-bool, bug-hash))
-        self._bug_list = dict()
+        self._bug_list = {}
 
         self._parse()
 

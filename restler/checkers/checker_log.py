@@ -36,4 +36,4 @@ class CheckerLog(object):
         with open(self._log_path, "a+", encoding='utf-8') as log_file:
             print(msg, file=log_file)
         if print_to_network_log:
-            logger.raw_network_logging(self._checker_name + ' ' + msg)
+            logger.raw_network_logging(f'{self._checker_name} {msg}')

@@ -47,13 +47,11 @@ def get_param_combinations(req, param_combinations_setting, param_list, param_ty
 
     if param_kind == "all":
         # Send combinations of all available parameters.
-        for x in get_param_list_combinations(param_list, max_combinations):
-            yield x
+        yield from get_param_list_combinations(param_list, max_combinations)
     elif param_kind == "required":
         # Only send required parameter combinations, and omit optional parameters.
         required_params_list = filter_required(param_list)
-        for x in get_param_list_combinations(required_params_list, max_combinations):
-            yield x
+        yield from get_param_list_combinations(required_params_list, max_combinations)
     elif param_kind == "optional":
         # Send required parameters, and additionally send combinations
         # of optional parameters.

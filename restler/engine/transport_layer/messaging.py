@@ -35,7 +35,7 @@ class HttpSock(object):
 
         """
         self._request_throttle_sec = (float)(Settings().request_throttle_ms/1000.0)\
-            if Settings().request_throttle_ms else None
+                if Settings().request_throttle_ms else None
 
         self.connection_settings = connection_settings
 
@@ -74,8 +74,7 @@ class HttpSock(object):
 
     def _get_method_from_message(self, message):
         end_of_method_idx = message.find(" ")
-        method_name = message[0:end_of_method_idx]
-        return method_name
+        return message[:end_of_method_idx]
 
     def sendRecv(self, message, req_timeout_sec=600):
         """ Sends a specified request to the server and waits for a response
@@ -236,7 +235,7 @@ class HttpSock(object):
         # Handle chunk encoding
         chuncked_encoding = False
         if 'Transfer-Encoding: chunked\r\n' in data or\
-            'transfer-encoding: chunked\r\n' in data:
+                'transfer-encoding: chunked\r\n' in data:
             # Handle corner case of single-chunk data transfer. Without this
             # check, the next recv call on _sock will hang until timeout.
             if data.endswith(DELIM):

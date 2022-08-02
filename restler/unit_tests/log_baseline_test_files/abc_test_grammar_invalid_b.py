@@ -30,7 +30,10 @@ def parse_A(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -46,7 +49,10 @@ def parse_B(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -63,7 +69,10 @@ def parse_D(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])

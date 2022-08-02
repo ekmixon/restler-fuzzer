@@ -25,7 +25,7 @@ class HttpResponse(object):
         self._status_code = None
 
         if response_str:
-            self._str = str(response_str)
+            self._str = response_str
 
             try:
                 self._status_code = self._str.split(" ")[1]
@@ -97,12 +97,11 @@ class HttpResponse(object):
         for header in self.headers:
             payload_start_idx = header.index(":")
             try:
-                header_name = header[0:payload_start_idx]
+                header_name = header[:payload_start_idx]
                 header_val = header[payload_start_idx+1:]
                 headers_dict[header_name] = header_val
             except Exception as error:
                 print(f"Error parsing header: {x}", x)
-                pass
         return headers_dict
 
     @property
@@ -162,13 +161,11 @@ class HttpResponse(object):
         """
         if self._status_code:
             if Settings().custom_non_bug_codes:
-                # All codes except the ones in the custom_non_bug_codes list should be flagged as bugs.
-                # Hence, return False only if the status code exists in the list.
-                for code in Settings().custom_non_bug_codes:
-                    if re.match(code, self._status_code):
-                        return False
-                else:
-                    return True
+                return not any(
+                    re.match(code, self._status_code)
+                    for code in Settings().custom_non_bug_codes
+                )
+
             if self._status_code.startswith('5'):
                 return True
             for code in Settings().custom_bug_codes:
@@ -183,6 +180,4 @@ class HttpResponse(object):
         @rtype : Bool
 
         """
-        if self._status_code:
-            return self._status_code in VALID_CODES
-        return False
+        return self._status_code in VALID_CODES if self._status_code else False

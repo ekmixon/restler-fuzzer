@@ -89,10 +89,8 @@ class ResourceBase:
         if len(objects) == 2:
             # Final resource in the endpoint, set it
             return self.set_resource(parent_type, parent_name, body)
-        else:
-            resource = self.get_resource_object(objects[:-2])
-            return resource.set_resource(objects[-2], objects[-1], body)
-        return resource
+        resource = self.get_resource_object(objects[:-2])
+        return resource.set_resource(objects[-2], objects[-1], body)
 
     @abstractmethod
     def set_resource(self, type: str, name: str, body: str = None):
@@ -164,16 +162,14 @@ class ResourceBase:
                  - If getting a resource, return all of it's data
 
         """
-        if type:
-            if type in self._children:
-                # If just getting from a type, return dyn objects of this type
-                ret_list = {type: dict()}
-                if self._children[type] is not None:
-                    for child in self._children[type]:
-                        ret_list[type][child] = self._children[type][child].data
-                return ret_list
-            else:
-                raise ResourceDoesNotExist
-        else:
+        if not type:
             return self.data
+        if type not in self._children:
+            raise ResourceDoesNotExist
+                # If just getting from a type, return dyn objects of this type
+        ret_list = {type: {}}
+        if self._children[type] is not None:
+            for child in self._children[type]:
+                ret_list[type][child] = self._children[type][child].data
+        return ret_list
 

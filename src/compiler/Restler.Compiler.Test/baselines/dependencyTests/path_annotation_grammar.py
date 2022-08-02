@@ -29,14 +29,14 @@ def parse_storespost(data, **kwargs):
         try:
             data = json.loads(data)
         except Exception as error:
-            raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
-        pass
-
+            raise ResponseParsingException(
+                f"Exception parsing response, data was not valid json: {error}"
+            )
     # Try to extract each dynamic object
 
         try:
             temp_7262 = str(data["delivery"]["metadata"])
-            
+
         except Exception as error:
             # This is not an error, since some properties are not always returned
             pass
@@ -44,7 +44,7 @@ def parse_storespost(data, **kwargs):
 
         try:
             temp_8173 = str(data["id"])
-            
+
         except Exception as error:
             # This is not an error, since some properties are not always returned
             pass
@@ -52,7 +52,7 @@ def parse_storespost(data, **kwargs):
 
         try:
             temp_7680 = str(data["metadata"])
-            
+
         except Exception as error:
             # This is not an error, since some properties are not always returned
             pass

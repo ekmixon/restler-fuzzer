@@ -116,15 +116,12 @@ def extend(seq_collection, fuzzing_requests, lock):
     # See comment above...
     Monitor().current_fuzzing_generation -= 1
 
-    # In case of random walk, truncate sequence collection to
-    # one randomly selected sequence
     if Settings().fuzzing_mode == 'random-walk':
-        if len(seq_collection) > 0:
-            rand_int = random.randint(prev_len, len(seq_collection) - 1)
-            return seq_collection[rand_int: rand_int + 1], extended_requests[rand_int: rand_int + 1]
-        else:
+        if len(seq_collection) <= 0:
             return [], []
 
+        rand_int = random.randint(prev_len, len(seq_collection) - 1)
+        return seq_collection[rand_int: rand_int + 1], extended_requests[rand_int: rand_int + 1]
     # Drop previous generation and keep current extended generation
     return seq_collection[prev_len:], extended_requests
 
@@ -262,7 +259,6 @@ def render_one(seq_to_render, ith, checkers, generation, global_lock):
             # Never rendered requests will be printed at the end of the fuzzing loop, so there is no need to
             # output anything to the spec coverage file here.
 
-    # bfs needs to be exhaustive to provide full grammar coverage
     elif Settings().fuzzing_mode in ['bfs', 'bfs-fast', 'test-all-combinations']:
 
         # This loop will iterate over possible remaining renderings of the
@@ -274,10 +270,13 @@ def render_one(seq_to_render, ith, checkers, generation, global_lock):
             apply_checkers(checkers, renderings, global_lock)
 
             # If in exhaustive test mode, log the spec coverage.
-            if Settings().fuzzing_mode == 'test-all-combinations':
-                if renderings and renderings.sequence:
-                    renderings.sequence.last_request.stats.set_all_stats(renderings)
-                    logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
+            if (
+                Settings().fuzzing_mode == 'test-all-combinations'
+                and renderings
+                and renderings.sequence
+            ):
+                renderings.sequence.last_request.stats.set_all_stats(renderings)
+                logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
     else:
         print("Unsupported fuzzing_mode:", Settings().fuzzing_mode)
         assert False
@@ -373,25 +372,21 @@ def render_with_cache(seq_collection, fuzzing_pool, checkers, generation, global
             renderings_found = seq_rendering_cache.get_renderings(current_seq.requests[prefix_start:], Settings().fuzzing_mode == 'test-all-combinations')
 
             if renderings_found:
-                if True in renderings_found:
-                    valid = True
-                else:
-                    valid = False
-
+                valid = True in renderings_found
                 first_found = renderings_found[valid][0]
                 prefix_len = first_found.length
 
                 if valid:
                     # Append the list of renderings for this prefix
                     all_rendered_prefixes_found.append(renderings_found[valid])
-                    prefix_start = prefix_start + prefix_len
+                    prefix_start += prefix_len
 
                 logger.write_to_main(f"Found a matching prefix of length {prefix_len} "
                                         f"for request {current_seq.last_request.stats.request_order} "
                                         f"with previous request {first_found.last_request.stats.request_order}")
                 if valid:
                     logger.write_to_main(f"\tand re-using that VALID prefix ({len(renderings_found[True])} rendering combinations)\n")
-                elif (valid == False):
+                elif not valid:
                     logger.write_to_main(f"\tbut that prefix was INVALID (root = {first_found.last_request.stats.request_order})\n")
                     # Don't log the rendered hash because this request is not going to be rendered.
                     # Set the matching prefix to the last rendered prefix

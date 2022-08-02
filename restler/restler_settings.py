@@ -234,7 +234,7 @@ class SettingsDictArg(SettingsArg):
 
         """
         super(SettingsDictArg, self).__init__(name, type, None, None, minval=minval, min_exactok=min_exactok, maxval=maxval, max_exactok=max_exactok)
-        self.val = dict()
+        self.val = {}
         self.key_convert=key_convert
         self.val_convert=val_convert
 
@@ -323,7 +323,7 @@ class RestlerSettings(object):
         @rtype  RestlerSettings
 
         """
-        if RestlerSettings.__instance == None:
+        if RestlerSettings.__instance is None:
             raise UninitializedError("RestlerSettings not yet initialized.")
         return RestlerSettings.__instance
 
@@ -680,8 +680,10 @@ class RestlerSettings(object):
         @return: True if we are running a smoke test
 
         """
-        return self._fuzzing_mode.val == 'directed-smoke-test' or \
-               self._fuzzing_mode.val == 'test-all-combinations'
+        return self._fuzzing_mode.val in [
+            'directed-smoke-test',
+            'test-all-combinations',
+        ]
 
     def get_endpoint_custom_mutations_paths(self) -> dict:
         """ Returns the dict containing the endpoint specific custom mutations

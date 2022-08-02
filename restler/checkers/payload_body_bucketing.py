@@ -12,7 +12,7 @@ INVALID_JSON_STR = 'InvalidJson'
 class PayloadBodyBuckets():
     def __init__(self):
         """ Initializes PayloadBodyBuckets class """
-        self._buckets = dict() # {Request, set(error_strs)}
+        self._buckets = {}
 
     def add_bug(self, request, new_request_data):
         """ Adds a bug to the payload body buckets log if it is unique.
@@ -59,16 +59,11 @@ class PayloadBodyBuckets():
         @rtype : Str or None
 
         """
-        if new_body:
-            # Compare the new body to the original request for a type mismatch
-            mismatch = request.body_schema.has_type_mismatch(new_body)
-            if mismatch:
-                return f'TypeMismatch_{mismatch}'
-            # Compare the new body to the original request for a missing struct
-            missing = request.body_schema.has_struct_missing(new_body)
-            if missing:
-                return f'StructMissing_{missing}'
-        else:
+        if not new_body:
             return INVALID_JSON_STR
 
+        if mismatch := request.body_schema.has_type_mismatch(new_body):
+            return f'TypeMismatch_{mismatch}'
+        if missing := request.body_schema.has_struct_missing(new_body):
+            return f'StructMissing_{missing}'
         return None

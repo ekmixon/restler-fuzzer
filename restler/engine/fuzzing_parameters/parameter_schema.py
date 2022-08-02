@@ -32,8 +32,7 @@ class KeyValueParamList():
 
     def __iter__(self):
         # TODO: test examples checker w/ this change...
-        for param_item in self._param_list:
-            yield param_item
+        yield from self._param_list
 
     def __len__(self):
         return len(self._param_list)
@@ -41,19 +40,16 @@ class KeyValueParamList():
     def __eq__(self, other):
         """ Operator equals
         """
-        if not isinstance(other, KeyValueParamList):
-            # don't attempt to compare against unrelated types
-            return False
-
-        return self._param_list == other.param_list
+        return (
+            self._param_list == other.param_list
+            if isinstance(other, KeyValueParamList)
+            else False
+        )
 
     def __hash__(self):
         """ Custom hash function
         """
-        _hash = 0
-        for param_item in self._param_list:
-            _hash += hash(param_item)
-        return _hash
+        return sum(hash(param_item) for param_item in self._param_list)
 
     def append(self, param_item):
         """ Appends a new query to the end of the Query List
@@ -106,9 +102,7 @@ class QueryList(KeyValueParamList):
         """
         for query_parameter in query_parameters:
             if query_parameter[0] in ['Schema', 'DictionaryCustomPayload']:
-                # Set each query parameter of the query
-                query_param_list = des_query_param(query_parameter[1])
-                if query_param_list:
+                if query_param_list := des_query_param(query_parameter[1]):
                     for query_param in query_param_list:
                         self.append(query_param)
 
@@ -167,9 +161,7 @@ class HeaderList(KeyValueParamList):
         """
         for header_parameter in header_parameters:
             if header_parameter[0] in ['Schema', 'DictionaryCustomPayload']:
-                # Set each query parameter of the query
-                header_param_list = des_header_param(header_parameter[1])
-                if header_param_list:
+                if header_param_list := des_header_param(header_parameter[1]):
                     for header_param in header_param_list:
                         self.append(header_param)
 

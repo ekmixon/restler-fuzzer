@@ -118,10 +118,7 @@ def try_parse_GET_request(request_data):
     """
     async_get_data = make_GET_request(request_data)
     get_response = request_utilities.send_request_data(async_get_data)
-    if get_response.status_code == '200':
-        # The new GET request was successful, set it as the data to parse and return
-        return get_response
-    return None
+    return get_response if get_response.status_code == '200' else None
 
 def try_async_poll(request_data, response, max_async_wait_time):
     """ Helper that will poll the server until a certain resource
@@ -161,7 +158,7 @@ def try_async_poll(request_data, response, max_async_wait_time):
     responses_to_parse = []
     resource_error = False
     async_waited = False
-    if  Settings().wait_for_async_resource_creation and max_async_wait_time > 0\
+    if Settings().wait_for_async_resource_creation and max_async_wait_time > 0\
     and (request_data.startswith("PUT") or request_data.startswith("POST")):
         # Get the request used for polling the resource availability
         data, data_in_poll_response = get_polling_request(response)
@@ -188,8 +185,9 @@ def try_async_poll(request_data, response, max_async_wait_time):
                             # return the response.  This is used in case all of the expected properties are
                             # not present in the async response.
                             RAW_LOGGING("Attempting to get resources from GET request...")
-                            get_response = try_parse_GET_request(request_data)
-                            if get_response:
+                            if get_response := try_parse_GET_request(
+                                request_data
+                            ):
                                 # Use response from the GET request for parsing. If the GET request failed,
                                 # the caller will know to try and use the original PUT response for parsing
                                 responses_to_parse.insert(0, get_response)
@@ -202,17 +200,18 @@ def try_async_poll(request_data, response, max_async_wait_time):
                         # Check for the status of the resource
                         response_body = json.loads(poll_response.json_body)
                         done = str(response_body["status"]).lower()
-                        if done == "succeeded":
-                            LOG_RESULTS(request_data,
-                                f"Resource creation succeeded after {time_str} seconds.")
-                            get_response = try_parse_GET_request(request_data)
-                            if get_response:
-                                responses_to_parse.append(get_response)
-                        elif done == "failed":
+                        if done == "failed":
                             LOG_RESULTS(request_data,
                                 f"The server reported that the resource creation Failed after {time_str} seconds.")
                             resource_error = True
 
+                        elif done == "succeeded":
+                            LOG_RESULTS(request_data,
+                                f"Resource creation succeeded after {time_str} seconds.")
+                            if get_response := try_parse_GET_request(
+                                request_data
+                            ):
+                                responses_to_parse.append(get_response)
                         # Break and return the responses to be parsed
                         break
                 except json.JSONDecodeError as err:
@@ -240,12 +239,11 @@ def try_async_poll(request_data, response, max_async_wait_time):
                 LOG_RESULTS(request_data,
                     f"Failed to create resource in {max_async_wait_time} seconds.")
                 RAW_LOGGING("Attempting to get resources from GET request...")
-                get_response = try_parse_GET_request(request_data)
-                if get_response:
+                if get_response := try_parse_GET_request(request_data):
                     # Use response from the GET request for parsing. If the GET request failed,
                     # the caller will know to try and use the original PUT response for parsing
                     responses_to_parse.append(get_response)
 
-    if len(responses_to_parse) == 0:
+    if not responses_to_parse:
         responses_to_parse.append(response)
     return responses_to_parse, resource_error, async_waited

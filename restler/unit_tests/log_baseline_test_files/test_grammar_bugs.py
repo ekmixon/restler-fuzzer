@@ -47,7 +47,10 @@ def parse_cityNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -63,7 +66,10 @@ def parse_cityHouseNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -79,7 +85,10 @@ def parse_cityHouseColorNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -95,7 +104,10 @@ def parse_leakageruletestNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -111,7 +123,10 @@ def parse_useafterfreetestNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -127,7 +142,10 @@ def parse_resourcehierarchytestNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -143,7 +161,10 @@ def parse_resourcehierarchychildNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -159,7 +180,10 @@ def parse_namespaceruletestNamePut(data):
     try:
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])

@@ -50,15 +50,16 @@ class ResourceHierarchyChecker(CheckerBase):
         # Skip sequence if there are no predecessor dependencies or no
         # target objects to swap.
         if not predecessors_types.intersection(target_types)\
-                or not target_types - predecessors_types:
+                    or not target_types - predecessors_types:
             return
 
         # For the target_types, get the latest
         # values which we know will exist due to the previous rendering.
         # We will later on use these old values with a new parent rendering.
-        old_values = {}
-        for target_type in target_types - predecessors_types:
-           old_values[target_type] = dependencies.get_variable(target_type)
+        old_values = {
+            target_type: dependencies.get_variable(target_type)
+            for target_type in target_types - predecessors_types
+        }
 
         # Reset tlb of all values and re-render all predecessors up to
         # the parent's parent. This will propagate new values for all
@@ -78,21 +79,21 @@ class ResourceHierarchyChecker(CheckerBase):
         new_seq = self._render_n_predecessor_requests(n_predecessors)
 
         # log some helpful info
-        self._checker_log.checker_print("\nTarget types: {}".\
-                            format(target_types - predecessors_types))
+        self._checker_log.checker_print(
+            f"\nTarget types: {target_types - predecessors_types}"
+        )
+
         self._checker_log.checker_print(f"Predecesor types: {predecessors_types}")
-        self._checker_log.checker_print("Clean dependencies: {}".\
-                            format(dependencies.tlb))
+        self._checker_log.checker_print(f"Clean dependencies: {dependencies.tlb}")
 
         # Before rendering the last request, substitute all target types
         # (target dynamic object) with a value that does NOT belong to
         # the current rendering and should not be accessible through
         # the new predecessors' rendering.
-        for target_type in old_values:
-            dependencies.set_variable(target_type, old_values[target_type])
+        for target_type, value in old_values.items():
+            dependencies.set_variable(target_type, value)
 
-        self._checker_log.checker_print("Poluted dependencies: {}".\
-                            format(dependencies.tlb))
+        self._checker_log.checker_print(f"Poluted dependencies: {dependencies.tlb}")
         self._render_last_request(new_seq)
 
     def _render_n_predecessor_requests(self, n_predecessors):

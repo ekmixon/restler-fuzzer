@@ -30,9 +30,7 @@ class PostsCollection(Resource):
         page = args.get('page', 1)
         per_page = args.get('per_page', 1)
         posts_query = Post.query
-        posts_page = posts_query.paginate(page, per_page)
-
-        return posts_page
+        return posts_query.paginate(page, per_page)
 
     @api.expect(blog_post_public)
     @api.marshal_with(blog_post_public)

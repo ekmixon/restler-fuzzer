@@ -70,10 +70,9 @@ class BodySchemaStructuralFuzzer():
         pool = schema_seed.get_fuzzing_pool(self, config)
         if len(pool) <= self._max_combination:
             return pool
-        else:
-            if self._shuffle_combination:
-                random.Random(self._random_seed).shuffle(pool)
-            return pool[:self._max_combination]
+        if self._shuffle_combination:
+            random.Random(self._random_seed).shuffle(pool)
+        return pool[:self._max_combination]
 
     def _set_default_config(self):
         """ Set default configuration
@@ -106,9 +105,6 @@ class BodySchemaStructuralFuzzer():
 
         elif self._is_all_mode():
             self._propagate_strategy = 'EX'
-
-        else:
-            pass
 
     def _is_single_mode(self):
         """ Return if is single mode
@@ -352,9 +348,7 @@ class BodySchemaStructuralFuzzer():
             return get_product_linear_bias(children, bound)
 
         else:
-            self._log('Unknown propagate strategy {}'.format(
-                self._propagate_strategy)
-            )
+            self._log(f'Unknown propagate strategy {self._propagate_strategy}')
             return []
 
 
@@ -556,10 +550,11 @@ class BodyFuzzer_DropMember(BodySchemaStructuralFuzzer):
     def _fuzz_members_in_object(self, fuzzed_members):
         # include the seed
         pool = [fuzzed_members]
-        for idx, _ in enumerate(fuzzed_members):
-            pool.append(
-                fuzzed_members[:idx] + fuzzed_members[idx + 1:]
-            )
+        pool.extend(
+            fuzzed_members[:idx] + fuzzed_members[idx + 1 :]
+            for idx, _ in enumerate(fuzzed_members)
+        )
+
         return pool
 
 
@@ -585,8 +580,7 @@ class BodyFuzzer_SelectMember(BodySchemaStructuralFuzzer):
     def _fuzz_members_in_object(self, fuzzed_members):
         # include the seed
         pool = [fuzzed_members]
-        for _, members in enumerate(fuzzed_members):
-            pool.append([members])
+        pool.extend([members] for members in fuzzed_members)
         return pool
 
 
@@ -597,9 +591,7 @@ class BodyFuzzer_SelectOnlyOneMember_Tree(BodySchemaStructuralFuzzer):
     def _fuzz_members_in_object(self, fuzzed_members):
         # the first one should be the original one
         pool = [fuzzed_members]
-        for _, members in enumerate(fuzzed_members):
-            # only keep the first variant (original structure)
-            pool.append([[members[0]]])
+        pool.extend([[members[0]]] for members in fuzzed_members)
         return pool
 
 
@@ -610,8 +602,7 @@ class BodyFuzzer_SelectOnlyOneMember_Path(BodySchemaStructuralFuzzer):
     def _fuzz_members_in_object(self, fuzzed_members):
         # the first one should be ONLY the original structure
         pool = [[[m[0]] for m in fuzzed_members]]
-        for _, members in enumerate(fuzzed_members):
-            pool.append([members])
+        pool.extend([members] for members in fuzzed_members)
         return pool
 
 
@@ -620,12 +611,8 @@ class BodyFuzzer_Select2Member(BodySchemaStructuralFuzzer):
         BodySchemaStructuralFuzzer.__init__(self, LOG)
 
     def _fuzz_members_in_object(self, fuzzed_members):
-        pool = []
         combination = itertools.combinations(fuzzed_members, 2)
-        for c in combination:
-            pool.append(c)
-
-        return pool
+        return list(combination)
 
 
 class BodyFuzzer_Array(BodySchemaStructuralFuzzer):
@@ -637,16 +624,9 @@ class BodyFuzzer_Array(BodySchemaStructuralFuzzer):
         pool = [[]]
 
         if fuzzed_values:
-            # single
-            pool.append(fuzzed_values[:1])
-            # double
-            pool.append(fuzzed_values + fuzzed_values)
-            # others, e.g., larger?
-            # XXX for larger array, we may want to set it to constant
-        else:
-            # TODO insert dummy nodes
-            pass
-
+            pool.extend((fuzzed_values[:1], fuzzed_values + fuzzed_values))
+                # others, e.g., larger?
+                # XXX for larger array, we may want to set it to constant
         return pool
 
 
@@ -725,7 +705,7 @@ class BodyFuzzer_DuplicateMember(BodySchemaStructuralFuzzer):
 
     def _fuzz_members_in_object(self, fuzzed_members):
         pool = [fuzzed_members]
-        for _, members in enumerate(fuzzed_members):
+        for members in fuzzed_members:
             new_member = [members] + fuzzed_members
             if self._is_single_mode():
                 pool.append(

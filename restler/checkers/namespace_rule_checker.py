@@ -25,9 +25,7 @@ class NameSpaceRuleChecker(CheckerBase):
         def set_var(member_var, arg):
             """ helper for setting member variables from settings """
             val = Settings().get_checker_arg(self.friendly_name, arg)
-            if val is not None:
-                return val
-            return member_var
+            return val if val is not None else member_var
 
         self._trigger_on_dynamic_objects = True
         self._trigger_on_dynamic_objects = set_var(self._trigger_on_dynamic_objects, 'trigger_on_dynamic_objects')
@@ -55,7 +53,7 @@ class NameSpaceRuleChecker(CheckerBase):
         # We need more than one user to apply this checker.
         self._authentication_method = self._get_authentication_method()
         if self._authentication_method not\
-                in [STATIC_OAUTH_TOKEN, primitives.REFRESHABLE_AUTHENTICATION_TOKEN]:
+                    in [STATIC_OAUTH_TOKEN, primitives.REFRESHABLE_AUTHENTICATION_TOKEN]:
             return
 
         self._namespace_rule()
@@ -92,10 +90,6 @@ class NameSpaceRuleChecker(CheckerBase):
         @rtype : None
 
         """
-        # For the target types (target dynamic objects), get the latest
-        # values which we know will exist due to the previous rendering.
-        # We will later on use these old values atop a new rendering.
-        hijacked_values = {}
         consumed_types = self._sequence.consumes
         consumed_types = set(itertools.chain(*consumed_types))
 
@@ -133,13 +127,17 @@ class NameSpaceRuleChecker(CheckerBase):
 
         if last_request_contains_a_trigger_object:
             # Simply re-render the last request with the attacker credentials.
-            self._checker_log.checker_print(f"Re-rendering the last request with the attacker credentials.")
+            self._checker_log.checker_print(
+                "Re-rendering the last request with the attacker credentials."
+            )
+
             self._render_hijack_request(last_request)
             if not self._trigger_on_dynamic_objects:
                 return
 
-        for type in consumed_types:
-           hijacked_values[type] = dependencies.get_variable(type)
+        hijacked_values = {
+            type: dependencies.get_variable(type) for type in consumed_types
+        }
 
         self._checker_log.checker_print(f"Hijacked values: {hijacked_values}")
 
@@ -154,8 +152,8 @@ class NameSpaceRuleChecker(CheckerBase):
             self._render_attacker_subsequence(req)
 
             # Feed hijacked values.
-            for type in hijacked_values:
-                dependencies.set_variable(type, hijacked_values[type])
+            for type, value in hijacked_values.items():
+                dependencies.set_variable(type, value)
             self._render_hijack_request(req)
 
     def _render_attacker_subsequence(self, req):
@@ -186,8 +184,9 @@ class NameSpaceRuleChecker(CheckerBase):
             response = self._send_request(parser, rendered_data)
             request_utilities.call_response_parser(parser, response)
 
-        self._checker_log.checker_print("Subsequence rendering up to: {}".\
-                            format(stopping_length))
+        self._checker_log.checker_print(
+            f"Subsequence rendering up to: {stopping_length}"
+        )
 
 
     def _render_hijack_request(self, req):

@@ -50,10 +50,11 @@ class KeyValueParamBase():
     def __eq__(self, other):
         """ Operator equals
         """
-        if not isinstance(other, QueryParam):
-            # don't attempt to compare against unrelated types
-            return False
-        return self._content == other.content
+        return (
+            self._content == other.content
+            if isinstance(other, QueryParam)
+            else False
+        )
 
     def __hash__(self):
         """ Custom hash function
@@ -199,10 +200,11 @@ class ParamValue(ParamBase):
     def __eq__(self, other):
         """ Operator equals
         """
-        if not isinstance(other, ParamValue):
-            # don't attempt to compare against unrelated types
-            return False
-        return self._content == other.content
+        return (
+            self._content == other.content
+            if isinstance(other, ParamValue)
+            else False
+        )
 
     def __hash__(self):
         """ Custom hash function
@@ -251,7 +253,7 @@ class ParamValue(ParamBase):
         @rtype : None
 
         """
-        tags.update({self.tag : self._content})
+        tags[self.tag] = self._content
 
     def get_blocks(self, config=None):
         """ Gets the request blocks for this value param.
@@ -261,9 +263,7 @@ class ParamValue(ParamBase):
 
         """
         if self._custom_payload_type is not None:
-            if self._custom_payload_type == "String":
-                return [primitives.restler_custom_payload(self._content)]
-            elif self._custom_payload_type == "Query":
+            if self._custom_payload_type in ["String", "Query"]:
                 return [primitives.restler_custom_payload(self._content)]
             elif self._custom_payload_type == "Header":
                 return [primitives.restler_custom_payload_header(self._content)]
@@ -290,9 +290,7 @@ class ParamValue(ParamBase):
         @rtype : Str or None
 
         """
-        if not isinstance(check_value, self.type):
-            return self.tag
-        return None
+        return None if isinstance(check_value, self.type) else self.tag
 
     def check_struct_missing(self, check_value, visitor):
         # Not relevant for this param type
@@ -317,19 +315,16 @@ class ParamObject(ParamBase):
     def __eq__(self, other):
         """ Operator equals
         """
-        if not isinstance(other, ParamObject):
-            # don't attempt to compare against unrelated types
-            return False
-
-        return self._members == other.members
+        return (
+            self._members == other.members
+            if isinstance(other, ParamObject)
+            else False
+        )
 
     def __hash__(self):
         """ Custom hash function
         """
-        _hash = 0
-        for member in self._members:
-            _hash += hash(member)
-        return _hash
+        return sum(hash(member) for member in self._members)
 
     @property
     def members(self):
@@ -339,9 +334,7 @@ class ParamObject(ParamBase):
         @rtype:  List [ParamMember]
 
         """
-        if self._members:
-            return self._members
-        return []
+        return self._members or []
 
     def get_schema_tag_mapping(self, tags: dict, config):
         """ Adds this object's tags to the mapping of tags
@@ -392,8 +385,10 @@ class ParamObject(ParamBase):
         fuzzed_members = []
         if config.depth < config.max_depth:
             config.depth += 1
-            for member in self._members:
-                fuzzed_members.append(member.get_fuzzing_pool(fuzzer, config))
+            fuzzed_members.extend(
+                member.get_fuzzing_pool(fuzzer, config) for member in self._members
+            )
+
             config.depth -= 1
 
         return fuzzer._fuzz_object(self, fuzzed_members)
@@ -424,8 +419,7 @@ class ParamObject(ParamBase):
             return self.tag
 
         for member in self._members:
-            tag = member.check_type_mismatch(check_value)
-            if tag:
+            if tag := member.check_type_mismatch(check_value):
                 return tag
         return None
 
@@ -480,9 +474,7 @@ class ParamObject(ParamBase):
         @rtype : List[str]
 
         """
-        blocks = []
-
-        blocks.append(primitives.restler_static_string('{'))
+        blocks = [primitives.restler_static_string('{')]
 
         for idx, member_blocks in enumerate(members_blocks):
             blocks += member_blocks
@@ -569,8 +561,10 @@ class ParamArray(ParamBase):
 
         if config.depth < config.max_depth:
             config.depth += 1
-            for value in self._values:
-                fuzzed_values.append(value.get_fuzzing_pool(fuzzer, config))
+            fuzzed_values.extend(
+                value.get_fuzzing_pool(fuzzer, config) for value in self._values
+            )
+
             config.depth -= 1
 
         return fuzzer._fuzz_array(self, fuzzed_values)
@@ -662,9 +656,7 @@ class ParamArray(ParamBase):
         @rtype : List[str]
 
         """
-        blocks = []
-
-        blocks.append(primitives.restler_static_string('['))
+        blocks = [primitives.restler_static_string('[')]
 
         for idx, value_blocks in enumerate(values_blocks):
             blocks += value_blocks
@@ -745,7 +737,7 @@ class ParamString(ParamValue):
                 return True
             if val[0] == '{' and val[-1] == '}':
                 return True
-            if val.lower() == 'true' or val.lower() == 'false':
+            if val.lower() in ['true', 'false']:
                 return True
 
             try:
@@ -1091,8 +1083,11 @@ class ParamEnum(ParamBase):
         contents_str = []
 
         for content in self._contents:
-            if self._is_quoted and (self.content_type == 'String' or \
-                                    self.content_type == 'Uuid' or self.content_type == 'DateTime'):
+            if self._is_quoted and self.content_type in [
+                'String',
+                'Uuid',
+                'DateTime',
+            ]:
                 content_str = f'"{content}"'
             else:
                 content_str = content
@@ -1153,11 +1148,11 @@ class ParamMember(ParamBase):
     def __eq__(self, other):
         """ Operator equals
         """
-        if not isinstance(other, ParamMember):
-            # don't attempt to compare against unrelated types
-            return False
-
-        return self._name == other.name and self._value == other.value
+        return (
+            self._name == other.name and self._value == other.value
+            if isinstance(other, ParamMember)
+            else False
+        )
 
     def __hash__(self):
         """ Custom hash function
@@ -1208,7 +1203,7 @@ class ParamMember(ParamBase):
 
     def get_signature(self, config):
         """ Returns this member's signature """
-        return f'{TAG_SEPARATOR}{self.tag}_mem' + self._value.get_signature(config)
+        return f'{TAG_SEPARATOR}{self.tag}_mem{self._value.get_signature(config)}'
 
     def get_schema_tag_mapping(self, tags: dict, config):
         """ Adds this object's tags to the mapping of tags

@@ -57,8 +57,7 @@ def create_fuzzing_req_collection(path_regex):
             if re.findall(path_regex, request.endpoint):
                 reqs = driver.compute_request_goal_seq(
                     request, GrammarRequestCollection())
-                for req in reqs:
-                    included_requests.append(req)
+                included_requests.extend(iter(reqs))
     else:
         included_requests = list (GrammarRequestCollection()._requests)
 
@@ -226,11 +225,10 @@ def apply_create_once_resources(fuzzing_requests):
                                             None,
                                             preprocessing=True)
 
-                    if Settings().in_smoke_test_mode():
-                        if renderings.sequence:
-                            renderings.sequence.last_request.stats.request_order = 'Preprocessing'
-                            renderings.sequence.last_request.stats.set_all_stats(renderings)
-                            logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
+                    if Settings().in_smoke_test_mode() and renderings.sequence:
+                        renderings.sequence.last_request.stats.request_order = 'Preprocessing'
+                        renderings.sequence.last_request.stats.set_all_stats(renderings)
+                        logger.print_request_coverage(rendered_sequence=renderings, log_rendered_hash=True)
 
                     # Make sure we were able to successfully create the create_once resource
                     if not renderings.valid:

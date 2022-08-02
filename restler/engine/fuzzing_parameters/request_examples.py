@@ -101,8 +101,7 @@ class RequestExamples():
                 payload = des_body_param(body_parameter[1])
                 added_body = False
                 if payload:
-                    body_example = des_param_payload(payload)
-                    if body_example:
+                    if body_example := des_param_payload(payload):
                         self._body_examples.append(BodySchema(param=body_example))
                         added_body = True
                 if not added_body:

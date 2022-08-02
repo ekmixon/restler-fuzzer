@@ -17,8 +17,7 @@ def des_header_param(header_param_payload):
     """
     headers = des_request_param_payload(header_param_payload)
     for (key, payload) in headers:
-        param = des_param_payload(payload, body_param=False)
-        if param:
+        if param := des_param_payload(payload, body_param=False):
             yield HeaderParam(key, param)
         else:
             return None
@@ -35,8 +34,7 @@ def des_query_param(query_param_payload):
     """
     queries = des_request_param_payload(query_param_payload)
     for (key, payload) in queries:
-        param = des_param_payload(payload, body_param=False)
-        if param:
+        if param := des_param_payload(payload, body_param=False):
             yield QueryParam(key, param)
         else:
             return None
@@ -51,8 +49,7 @@ def des_body_param(request_param_payload_json):
     @rtype : ParamObject
 
     """
-    des_payload = des_request_param_payload(request_param_payload_json)
-    if des_payload:
+    if des_payload := des_request_param_payload(request_param_payload_json):
         des_payload = des_payload[0]
         return des_payload.payload
     return None
@@ -68,13 +65,16 @@ def des_request_param_payload(request_param_payload_json):
 
     """
     KeyPayload = collections.namedtuple("KeyPayload", ['key', 'payload'])
-    payloads = []
     if 'ParameterList' in request_param_payload_json:
         param_list_seq = request_param_payload_json['ParameterList']
 
+        payloads = []
         for param_payload_pair in param_list_seq:
 
-            if not ('name' in param_payload_pair and 'payload' in param_payload_pair):
+            if (
+                'name' not in param_payload_pair
+                or 'payload' not in param_payload_pair
+            ):
                 logger.write_to_main('string - param payload does not contain expected elements')
                 raise Exception("Error parsing param payload json.  See the main log for more details.")
 
@@ -115,11 +115,7 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
         else:
             is_required = True
 
-        if tag:
-            next_tag = tag + '_' + name
-        else:
-            next_tag = name
-
+        next_tag = f'{tag}_{name}' if tag else name
         # Array --> ParamMember { name : ParamArray }
         if property_type == 'Array':
             values = []
@@ -129,14 +125,9 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
 
             array = ParamArray(values)
 
-            if body_param and name:
-                param = ParamMember(name, array, is_required)
-            else:
-                param = array
-
+            param = ParamMember(name, array, is_required) if body_param and name else array
             array.tag = f'{next_tag}_array'
 
-        # Object --> ParamObject { ParamMember, ..., ParamMember }
         elif property_type == 'Object':
             members = []
             for member_json in internal_data:
@@ -147,7 +138,6 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
 
             param.tag = f'{next_tag}_object'
 
-        # Property --> ParamMember { name : ParamObject }
         elif property_type == 'Property':
             if len(internal_data) != 1:
                 logger.write_to_main(f'Internal Property {name} size != 1')
@@ -156,7 +146,6 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
 
             param = ParamMember(name, value, is_required)
 
-        # others
         else:
             logger.write_to_main(f'Unknown internal type {property_type}')
 
@@ -165,11 +154,7 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
 
         name = leaf_node['name']
         payload = leaf_node['payload']
-        if 'isRequired' in leaf_node: # check for backwards compatibility of old schemas
-            is_required = leaf_node['isRequired']
-        else:
-            is_required = True
-
+        is_required = leaf_node['isRequired'] if 'isRequired' in leaf_node else True
         # payload is a dictionary (or member) with size 1
         if len(payload) != 1:
             logger.write_to_main(f'Unexpected payload format {payload}')
@@ -201,9 +186,14 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
             # dynamic objects are added to the schema types below (ParamValue, etc.).
             dynamic_object_input_variable=None
             if 'dynamicObject' in payload['Custom']:
-                dynamic_object_input_variable={}
-                dynamic_object_input_variable['content_type'] = payload['Custom']['dynamicObject']['primitiveType']
-                dynamic_object_input_variable['content_value'] = payload['Custom']['dynamicObject']['variableName']
+                dynamic_object_input_variable = {
+                    'content_type': payload['Custom']['dynamicObject'][
+                        'primitiveType'
+                    ],
+                    'content_value': payload['Custom']['dynamicObject'][
+                        'variableName'
+                    ],
+                }
 
         elif 'PayloadParts' in payload:
             definition = payload['PayloadParts'][-1]
@@ -214,7 +204,7 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
 
         # create value w.r.t. the type
         value = None
-        if content_type == 'String' or content_type == 'Uuid' or content_type == 'DateTime':
+        if content_type in ['String', 'Uuid', 'DateTime']:
             # If query parameter, assign as a value and not a string
             # because we don't want to wrap with quotes in the request
             if body_param:
@@ -264,20 +254,14 @@ def des_param_payload(param_payload_json, tag='', body_param=True):
         value.content = content_value
 
         if tag and name:
-            value.tag = (tag + '_' + name)
+            value.tag = f'{tag}_{name}'
         elif tag:
             value.tag = tag
         else:
             value.tag = name
 
         # create the param node
-        if name:
-            param = ParamMember(name, value, is_required=is_required)
-        else:
-            # when a LeafNode represent a standard type, e.g.,
-            # string, the name will be empty
-            param = value
-
+        param = ParamMember(name, value, is_required=is_required) if name else value
     else:
         logger.write_to_main('Neither internal nor leaf property')
 

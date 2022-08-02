@@ -61,12 +61,11 @@ class BodySchema():
     def __eq__(self, other):
         """ Operator equals
         """
-        if not isinstance(other, BodySchema):
-            # don't attempt to compare against unrelated types
-            return False
-
-        return self._schema == other._schema and\
-               self._node_count == other._node_count
+        return (
+            self._schema == other._schema and self._node_count == other._node_count
+            if isinstance(other, BodySchema)
+            else False
+        )
 
     def __hash__(self):
         """ Custom hash function """
@@ -136,7 +135,7 @@ class BodySchema():
         @rtype : Dictionary format: {"tag": content }
 
         """
-        mapping = dict()
+        mapping = {}
         self._schema.get_schema_tag_mapping(mapping, self._config)
         return mapping
 
@@ -237,8 +236,7 @@ class BodySchema():
             pool = fuzzing_utils.get_product_linear_bias(sets, self._config.max_combination)
 
         strs = [''.join(p) for p in pool]
-        outs = [[primitives.restler_static_string(string)] for string in strs]
-        return outs
+        return [[primitives.restler_static_string(string)] for string in strs]
 
     def has_type_mismatch(self, new_body):
         """ Checks the new_body for a type mismatch in one of the nodes
@@ -280,8 +278,7 @@ class BodySchema():
         """
         for body_parameter in body_parameters:
             if body_parameter[0] in ['Schema', 'DictionaryCustomPayload']:
-                payload = des_body_param(body_parameter[1])
-                if payload:
+                if payload := des_body_param(body_parameter[1]):
                     self._schema = des_param_payload(payload)
                     return
 

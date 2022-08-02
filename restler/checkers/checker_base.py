@@ -144,7 +144,7 @@ class CheckerBase:
         # then the checker is sending requests that it assumes should be handled by
         # the server replying with a 4xx client error status code (i.e. an invalid request)
         if response and (response.has_bug_code()\
-        or (valid_response_is_violation and response.has_valid_code())):
+            or (valid_response_is_violation and response.has_valid_code())):
             return not self._false_alarm(seq, response)
 
         # If we reach this point no violation has occured.

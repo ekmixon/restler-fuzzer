@@ -22,7 +22,7 @@ class FuzzingMonitor(object):
         @rtype  FuzzingMonitor
 
         """
-        if FuzzingMonitor.__instance == None:
+        if FuzzingMonitor.__instance is None:
             raise Exception("FuzzingMonitor not yet initialized.")
         return FuzzingMonitor.__instance
 
@@ -76,8 +76,7 @@ class FuzzingMonitor(object):
         @rtype : int
 
         """
-        _running_time = int(time.time()*10**6) - self._start_time
-        return _running_time
+        return int(time.time()*10**6) - self._start_time
 
     @property
     def remaining_time_budget(self):

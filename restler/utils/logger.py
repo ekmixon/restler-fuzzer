@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 """ Helpers for logging. """
+
 from __future__ import print_function
 import os
 import sys
@@ -57,7 +58,7 @@ REPLAY_REQUEST_INDICATOR = '-> '
 BUG_LOG_NOTIFICATION_ICON = '! '
 
 # Collection of NetworkLog objects identified by their thread ID
-Network_Logs = dict()
+Network_Logs = {}
 
 LOG_TYPE_TESTING = 'testing'
 LOG_TYPE_GC = 'gc'
@@ -114,7 +115,7 @@ class SpecCoverageLog(object):
         @rtype  SpecCoverageLog
 
         """
-        if SpecCoverageLog.__instance == None:
+        if SpecCoverageLog.__instance is None:
             raise Exception("SpecCoverageLog not yet initialized.")
         return SpecCoverageLog.__instance
 
@@ -152,17 +153,13 @@ class SpecCoverageLog(object):
         from engine.core.requests import FailureInformation
 
         req=rendered_request
-        coverage_data = {}
-        coverage_data[req_hash] = {}
+        coverage_data = {req_hash: {}}
         req_spec = coverage_data[req_hash]
         req_spec['verb'] = req.method
         req_spec['endpoint'] = req.endpoint_no_dynamic_objects
         req_spec['verb_endpoint'] = f"{req.method} {req.endpoint_no_dynamic_objects}"
         req_spec['valid'] = req.stats.valid
-        if req.stats.matching_prefix:
-            req_spec['matching_prefix'] = req.stats.matching_prefix
-        else:
-            req_spec['matching_prefix'] = 'None'
+        req_spec['matching_prefix'] = req.stats.matching_prefix or 'None'
         req_spec['invalid_due_to_sequence_failure'] = 0
         req_spec['invalid_due_to_resource_failure'] = 0
         req_spec['invalid_due_to_parser_failure'] = 0
@@ -209,10 +206,10 @@ class SpecCoverageLog(object):
         from engine.core.requests import FailureInformation
         if rendered_sequence:
             req=rendered_sequence.sequence.last_request
-        else:
-            if not request:
-                raise Exception("Either the rendered sequence or request must be specified.")
+        elif request:
             req = request
+        else:
+            raise Exception("Either the rendered sequence or request must be specified.")
         file_path = os.path.join(LOGS_DIR, 'speccov.json')
         if not os.path.exists(file_path):
             with open(file_path, 'w', encoding='utf-8') as file:
@@ -420,7 +417,7 @@ def raw_network_logging(data):
     # around CUSTOM_BOUNDARY, which is the binary payload
     if ('octet-stream' in data) and ('_CUSTOM_BOUNDARY_' in data):
         data = data.split('_CUSTOM_BOUNDARY_')
-        data = data[0] + '_OMITTED_BINARY_DATA_' + data[-1]
+        data = f'{data[0]}_OMITTED_BINARY_DATA_{data[-1]}'
 
     # remove tokens from the logs
     data = remove_tokens_from_logs(data)
@@ -483,10 +480,10 @@ def custom_network_logging(sequence, candidate_values_pool, **kwargs):
 BugTuple = namedtuple('BugTuple', ['filename_of_replay_log', 'bug_hash', 'reproduce_attempts', 'reproduce_successes'])
 # Dict to track whether or not a bug was already logged:
 #   {"{seq_hash}_{bucket_class}": BugTuple()}
-Bugs_Logged = dict()
+Bugs_Logged = {}
 # Dict of bug hashes to be printed to bug_buckets.json
 #   {bug_hash: {"file_path": replay_log_relative_path}}
-Bug_Hashes = dict()
+Bug_Hashes = {}
 def update_bug_buckets(bug_buckets, bug_request_data, bug_hash, additional_log_str=None):
     """
     @param bug_buckets: Dictionary containing bug bucket information
@@ -611,39 +608,6 @@ def copy_stats(counter):
     """
     return
 
-    if not os.path.exists(TIME_MACHINE):
-        try:
-            os.makedirs(TIME_MACHINE)
-        except OSError:
-            print(f"Exception Cannot Create: {TIME_MACHINE}")
-    try:
-        thread_id = threading.current_thread().ident
-
-        coverage = "/home/git/gitlab/scripts/coverage_stats.txt"
-        copyfile(coverage, os.path.join(TIME_MACHINE, f"coverage_stats{counter}.txt"))
-
-        if not os.path.exists(PLOTS_DIR):
-            os.makedirs(PLOTS_DIR)
-        clientside = os.path.join(PLOTS_DIR, "clientside.csv")
-        copyfile(clientside, os.path.join(TIME_MACHINE, f"clientside{counter}.csv"))
-
-        serverside = os.path.join(PLOTS_DIR, "serverside.csv")
-        copyfile(serverside, os.path.join(TIME_MACHINE, f"serverside{counter}.csv"))
-
-        networklogs = build_logfile_path(NETWORK_LOGS, LOG_TYPE_TESTING, str(threading.current_thread().ident))
-        copyfile(networklogs,
-                 os.path.join(TIME_MACHINE, f"{os.path.basename(networklogs)}.{counter}"))
-
-        try:
-            testcaseslogs = f'{BUG_BUCKET_LOGS}.{thread_id!s}'
-            copyfile(testcaseslogs,
-                     os.path.join(TIME_MACHINE, f"{os.path.basename(testcaseslogs)}.{counter}"))
-        except Exception:
-            pass
-
-    except Exception as error:
-        print("Exception copying:", error)
-
 def print_async_results(req_data, message):
     """ Prints the results of an async resource creation
 
@@ -691,12 +655,10 @@ def print_req_collection_stats(req_collection, candidate_values_pool):
                      for r in req_collection])
     data += f"{timestamp}: Median Value Combinations per Request: {val}\n"
 
-    val = min([r.num_combinations(candidate_values_pool)\
-                  for r in req_collection])
+    val = min(r.num_combinations(candidate_values_pool) for r in req_collection)
     data += f"{timestamp}: Min Value Combinations per Request: {val}\n"
 
-    val = max([r.num_combinations(candidate_values_pool)\
-                  for r in req_collection])
+    val = max(r.num_combinations(candidate_values_pool) for r in req_collection)
     data += f"{timestamp}: Max Value Combinations per Request: {val}\n"
 
     val = 0
@@ -842,23 +804,21 @@ def format_request_block(request_id, request_block, candidate_values_pool):
     # Handling dynamic primitives that need fresh rendering every time
     if primitive == "restler_fuzzable_uuid4":
         values = [primitives.restler_fuzzable_uuid4]
-    # Handle enums that have a list of values instead of one default val
     elif primitive == "restler_fuzzable_group":
         values = list(default_val)
-    # Handle multipart/formdata
     elif primitive == "restler_multipart_formdata":
         values = ['_OMITTED_BINARY_DATA_']
         default_val = '_OMITTED_BINARY_DATA_'
-    # Handle custom payload header and query
-    elif (primitive == "restler_custom_payload_header" or\
-          primitive == "restler_custom_payload_query"):
+    elif primitive in [
+        "restler_custom_payload_header",
+        "restler_custom_payload_query",
+    ]:
         current_fuzzable_tag = field_name
         values = candidate_values_pool.get_candidate_values(primitive, request_id=request_id, tag=current_fuzzable_tag, quoted=quoted)
         if not isinstance(values, list):
             values = [values]
         if len(values) == 1:
             default_val = values[0]
-    # Handle custom payload
     elif primitive == "restler_custom_payload":
         current_fuzzable_tag = field_name
         values = candidate_values_pool.get_candidate_values(primitive, request_id=request_id, tag=current_fuzzable_tag, quoted=quoted)
@@ -866,12 +826,10 @@ def format_request_block(request_id, request_block, candidate_values_pool):
             values = [values]
         if len(values) == 1:
             default_val = values[0]
-    # Handle custom payload with uuid4 suffix
     elif primitive == "restler_custom_payload_uuid4_suffix":
         current_fuzzable_tag = field_name
         values = candidate_values_pool.get_candidate_values(primitive, request_id=request_id, tag=current_fuzzable_tag, quoted=quoted)
         default_val = values[0]
-    # Handle all the rest
     else:
         values = candidate_values_pool.get_fuzzable_values(primitive, default_val, request_id, quoted=quoted, examples=examples)
     return primitive, values, default_val

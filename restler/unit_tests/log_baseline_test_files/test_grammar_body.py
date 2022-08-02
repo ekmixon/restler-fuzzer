@@ -24,7 +24,10 @@ def parse_cityNamePut(data):
 
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])
@@ -41,7 +44,10 @@ def parse_cityHouseNamePut(data):
 
         data = json.loads(data)
     except Exception as error:
-        raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
+        raise ResponseParsingException(
+            f"Exception parsing response, data was not valid json: {error}"
+        )
+
 
     try:
         temp_123 = str(data["name"])

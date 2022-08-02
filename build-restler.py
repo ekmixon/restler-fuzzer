@@ -123,8 +123,7 @@ def publish_engine_py(dirs):
             sys.exit(-1)
 
         stdout = str(output.stdout)
-        errors = get_compilation_errors(stdout)
-        if errors:
+        if errors := get_compilation_errors(stdout):
             for err in errors:
                 print("\nError found!\n")
                 print(err.replace('\\r\\n', '\r\n'))
@@ -154,7 +153,7 @@ def publish_dotnet_apps(dirs, configuration, dotnet_package_source):
         "restler": os.path.join(f'{dirs.repository_root_dir}','src','driver','Restler.Driver.fsproj')
     }
 
-    for key in dotnetcore_projects.keys():
+    for key in dotnetcore_projects:
         target_dir_name = key
         proj_output_dir = os.path.join(f'{dirs.dest_dir}', f'{target_dir_name}')
         proj_file_path = dotnetcore_projects[target_dir_name]
@@ -166,12 +165,12 @@ def publish_dotnet_apps(dirs, configuration, dotnet_package_source):
         output = subprocess.run(restore_args, shell=True, stderr=subprocess.PIPE)
         if output.stderr:
             print("Build failed!")
-            print(str(output.stderr))
+            print(output.stderr)
             sys.exit(-1)
         output = subprocess.run(f"dotnet publish \"{proj_file_path}\" --no-restore -o \"{proj_output_dir}\" -c {configuration} -f netcoreapp5.0", shell=True, stderr=subprocess.PIPE)
         if output.stderr:
             print("Build failed!")
-            print(str(output.stderr))
+            print(output.stderr)
             sys.exit(-1)
 
 if __name__ == '__main__':

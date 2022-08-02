@@ -39,7 +39,7 @@ class SequenceStatusCodes(object):
     def __init__(self, length):
         self.length = length
         # Contains list of RequestExecutionStatus objects with status codes as keys
-        self.request_statuses = dict()
+        self.request_statuses = {}
 
 class StatusCodesMonitor(object):
     def __init__(self, start_time):
@@ -50,7 +50,7 @@ class StatusCodesMonitor(object):
         self._requests_count = {'gc': 0, 'main_driver': 0}
 
         # Collection of SequenceStatusCodes objects with sequence hex defs as keys
-        self._sequence_statuses = dict()
+        self._sequence_statuses = {}
 
         # stuff for experiments with GitLab
         self.log_counter = 1
@@ -147,10 +147,7 @@ class StatusCodesMonitor(object):
                         if request.hex_definition == req.request_hex:
                             if lock is not None:
                                 lock.release()
-                            if code in status_codes:
-                                valid_code = True
-                            else:
-                                valid_code = False
+                            valid_code = code in status_codes
                             return QueryResult(valid_code, req.is_fully_valid, req.sequence_failure)
 
         if lock is not None:

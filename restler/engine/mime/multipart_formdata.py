@@ -39,28 +39,24 @@ def render(payloads):
     ]
 
     """
-    boundary = "_CUSTOM_BOUNDARY_{}".format(str(int(time.time())))
+    boundary = f"_CUSTOM_BOUNDARY_{int(time.time())}"
 
-    req = "Content-Type: multipart/form-data; boundary={}\r\n\r\n".\
-        format(boundary)
-    req+= '--{}\r\n'.format(boundary)
+    req = f"Content-Type: multipart/form-data; boundary={boundary}\r\n\r\n"
+    req += f'--{boundary}\r\n'
 
     for i, payload in enumerate(payloads):
-        req += 'Content-Disposition: form-data; {}\r\n'.\
-            format(payload['content-disposition'])
-        req += 'Content-Type: {}\r\n\r\n'.\
-            format("application/octet-stream")
+        req += f"Content-Disposition: form-data; {payload['content-disposition']}\r\n"
+        req += f'Content-Type: application/octet-stream\r\n\r\n'
         try:
-            f = open(payload['datastream'], 'r')
-            data = f.read()
-            f.close()
+            with open(payload['datastream'], 'r') as f:
+                data = f.read()
         except Exception as error:
-            print("Unhandled exception reading stream. Error:{}".format(error))
+            print(f"Unhandled exception reading stream. Error:{error}")
             raise
-        req += '{}\r\n\r\n'.format(data)
+        req += f'{data}\r\n\r\n'
         if i == len(payloads) - 1:
-            req += '--{}--\r\n'.format(boundary)
+            req += f'--{boundary}--\r\n'
         else:
-            req += '--{}\r\n\r\n'.format(boundary)
+            req += f'--{boundary}\r\n\r\n'
 
     return req

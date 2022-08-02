@@ -23,14 +23,14 @@ def parse_storesstoreIdorderpost(data, **kwargs):
         try:
             data = json.loads(data)
         except Exception as error:
-            raise ResponseParsingException("Exception parsing response, data was not valid json: {}".format(error))
-        pass
-
+            raise ResponseParsingException(
+                f"Exception parsing response, data was not valid json: {error}"
+            )
     # Try to extract each dynamic object
 
         try:
             temp_7262 = str(data["id"])
-            
+
         except Exception as error:
             # This is not an error, since some properties are not always returned
             pass
@@ -41,9 +41,7 @@ def parse_storesstoreIdorderpost(data, **kwargs):
     if not (temp_7262):
         raise ResponseParsingException("Error: all of the expected dynamic objects were not present in the response.")
 
-    # Set dynamic variables
-    if temp_7262:
-        dependencies.set_variable("_stores__storeId__order_post_id", temp_7262)
+    dependencies.set_variable("_stores__storeId__order_post_id", temp_7262)
 
 req_collection = requests.RequestCollection([])
 # Endpoint: /stores, method: Get

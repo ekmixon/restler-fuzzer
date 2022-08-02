@@ -56,12 +56,11 @@ def get_product_linear_bias(sets, bound):
         post = [s[0] for s in sets[idx + 1:]]
         # pivot
         for pivot in si[1:]:
-            if (cnt < bound) or (bound < 0):
-                product.append(pre + [pivot] + post)
-                cnt += 1
-            else:
+            if cnt >= bound >= 0:
                 return product
 
+            product.append(pre + [pivot] + post)
+            cnt += 1
     return product
 
 
@@ -108,10 +107,7 @@ def get_product_linear_fair(sets, bound):
         if done:
             break
 
-    if (bound > 0) and (len(product) > bound):
-        return product[:bound]
-
-    return product
+    return product[:bound] if (bound > 0) and (len(product) > bound) else product
 
 
 def flatten_json_object(hier_json):
@@ -171,10 +167,10 @@ def get_response_body(response):
     except Exception:
         return None
 
-    if start_char == '{':
-        end_char = '}'
-    elif start_char == '[':
+    if start_char == '[':
         end_char = ']'
+    elif start_char == '{':
+        end_char = '}'
     else:
         return None
 
@@ -184,10 +180,8 @@ def get_response_body(response):
 
     try:
         body_str = response[body_start: body_end + 1]
-        body = json.loads(body_str)
-        return body
+        return json.loads(body_str)
 
-    # IndexError or json loads error
     except Exception:
         return None
 

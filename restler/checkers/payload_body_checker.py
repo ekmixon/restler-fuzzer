@@ -72,9 +72,8 @@ class PayloadBodyChecker(CheckerBase):
         def set_var(member_var, arg):
             """ helper for setting member variables from settings """
             val = Settings().get_checker_arg(self.friendly_name, arg)
-            if val is not None:
-                return val
-            return member_var
+            return val if val is not None else member_var
+
         # 'start_with_valid' setting was kept for backwards compatibility.
         # This setting behaves identically to 'fuzz_valid'. 'fuzz_valid' takes priority.
         self._fuzz_valid = set_var(self._fuzz_valid, 'start_with_valid')
@@ -122,9 +121,9 @@ class PayloadBodyChecker(CheckerBase):
             self._setup_done = True
 
         if rendered_sequence.sequence is None or\
-        rendered_sequence.failure_info == FailureInformation.SEQUENCE or\
-        (rendered_sequence.valid and not self._fuzz_valid) or\
-        (not rendered_sequence.valid and not self._fuzz_invalid):
+            rendered_sequence.failure_info == FailureInformation.SEQUENCE or\
+            (rendered_sequence.valid and not self._fuzz_valid) or\
+            (not rendered_sequence.valid and not self._fuzz_invalid):
             return
 
         self._sequence = rendered_sequence.sequence
@@ -160,7 +159,7 @@ class PayloadBodyChecker(CheckerBase):
                 for tag in tag_content:
                     # replace example value None by the string 'null'
                     val = tag_content[tag]
-                    if val == None:
+                    if val is None:
                         val = 'null'
                     if tag in self._examples_values:
                         self._examples_values[tag].append(val)
@@ -444,16 +443,15 @@ class PayloadBodyChecker(CheckerBase):
                     for seed_schema in schema_pool[:max_propagation]
                 ]
 
+                acc_pool = []
                 if strategy == 'BF':
                     combination = itertools.zip_longest(*schema_group_list)
                     groups = [filter(None, list(tu)) for tu in combination]
 
-                    acc_pool = []
                     for group in groups:
                         acc_pool += group
 
                 else:  # DF and RD
-                    acc_pool = []
                     for group in schema_group_list:
                         acc_pool += group
 
@@ -603,9 +601,9 @@ class PayloadBodyChecker(CheckerBase):
         }
 
         node_num = body_schema_list[-1].node_count
-        # budget_scale = int(node_num / 500) + 1
-        budget_scale = 1
         if self._size_dep_budget:
+            # budget_scale = int(node_num / 500) + 1
+            budget_scale = 1
             max_combination = max(200, budget_scale * 10 * node_num)
             pipeline_width = max(20, budget_scale * node_num)
         else:
@@ -758,12 +756,11 @@ class PayloadBodyChecker(CheckerBase):
         )
         random.Random(random_seed).shuffle(schema_pool_select_spec)
 
-        schema_pool_structure = self._filter_duplicate(
-            body_schema_list[:-1] +
-            schema_pool_drop_examples + schema_pool_select_spec
+        return self._filter_duplicate(
+            body_schema_list[:-1]
+            + schema_pool_drop_examples
+            + schema_pool_select_spec
         )[:pipeline_width]
-
-        return schema_pool_structure
 
     def _run_value_fuzzing_on_pool(self, request, schema_pool, config_schema_interp,
                                    tracker, max_combination, tested_schema_signs):
@@ -812,9 +809,9 @@ class PayloadBodyChecker(CheckerBase):
             sign = schema.get_signature()
             if sign in signatures:
                 return False
-            else:
-                signatures.add(sign)
-                return True
+            signatures.add(sign)
+            return True
+
         return list(filter(func_check_unique, src_list))
 
     def _run_body_value_fuzzing(self, request, body_schema, config, tracker):
@@ -938,16 +935,12 @@ class PayloadBodyChecker(CheckerBase):
 
         flat_body = flatten_json_object(body)
 
-        hints = {}
-
-        # keep all responses (not just w.r.t. the complete body schema)
-        for tag in flat_body:
-            if isinstance(flat_body[tag], list):
-                hints[tag] = flat_body[tag]
-            else:
-                hints[tag] = [flat_body[tag]]
-
-        return hints
+        return {
+            tag: flat_body[tag]
+            if isinstance(flat_body[tag], list)
+            else [flat_body[tag]]
+            for tag in flat_body
+        }
 
     def _get_response_values(self, tag, hint=None):
         """ Return the values extracted from response
@@ -1012,10 +1005,7 @@ class PayloadBodyChecker(CheckerBase):
 
         # check if there is a match
         target_tag = tag.split('_')[-1]
-        if target_tag in new_pool:
-            return new_pool[target_tag]
-        else:
-            return []
+        return new_pool.get(target_tag, [])
 
     def _get_response_values_by_keywords(self, hint):
         """ Return the values from response based on the given hint/keyword
@@ -1076,11 +1066,10 @@ class PayloadBodyChecker(CheckerBase):
 
         """
         try:
-            custom_payload_uuid4_suffix_values = self._req_collection.\
-                candidate_values_pool.get_candidate_values(
-                    primitives.CUSTOM_PAYLOAD_UUID4_SUFFIX
-                )
-            return custom_payload_uuid4_suffix_values
+            return self._req_collection.candidate_values_pool.get_candidate_values(
+                primitives.CUSTOM_PAYLOAD_UUID4_SUFFIX
+            )
+
         except Exception:
             return {}
 

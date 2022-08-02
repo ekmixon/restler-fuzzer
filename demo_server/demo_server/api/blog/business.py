@@ -7,9 +7,7 @@ from flask import request
 import json
 
 def get_query():
-    # Gets the query string from the request
-    query = urllib.parse.urlparse(request.url).query
-    if query:
+    if query := urllib.parse.urlparse(request.url).query:
         return urllib.parse.unquote(query)
     return None
 
@@ -20,7 +18,7 @@ def check_double_query_bug():
 
 def check_no_id_bug():
     # Responds with '500' error if 'id' is missing from the body
-    if request.json.get('id') == None:
+    if request.json.get('id') is None:
         abort(500)
 
 def check_unexpected_query_string():
@@ -66,8 +64,7 @@ def delete_post(post_id):
     # invalid dynamic object checker bug.
     check_unexpected_query_string()
 
-    post = Post.query.filter(Post.id == post_id).one_or_none()
-    if post:
+    if post := Post.query.filter(Post.id == post_id).one_or_none():
         db.session.delete(post)
         db.session.commit()
     else:

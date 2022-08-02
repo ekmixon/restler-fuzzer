@@ -88,7 +88,7 @@ def execute_token_refresh_cmd(cmd):
             latest_token_value = ERROR_VAL_STR
             latest_shadow_token_value = ERROR_VAL_STR
             _RAW_LOGGING(error_str)
-            retry_count = retry_count + 1
+            retry_count += 1
             time.sleep(RETRY_SLEEP_TIME_SEC)
         except EmptyTokenException:
             error_str = "Error: Authentication token was empty."
@@ -151,11 +151,7 @@ def resolve_dynamic_primitives(values, candidate_values_pool):
         if isinstance(values[i], tuple)\
         and values[i][0] == primitives.restler_fuzzable_uuid4:
             val = uuid.uuid4().hex
-            quoted = values[i][1]
-            if quoted:
-                values[i] = f'"{val}"'
-            else:
-                values[i] = val
+            values[i] = f'"{val}"' if (quoted := values[i][1]) else val
         elif isinstance(values[i], tuple)\
         and values[i][0] == primitives.CUSTOM_PAYLOAD_UUID4_SUFFIX:
             current_uuid_type_name = values[i][1]
@@ -236,12 +232,11 @@ def send_request_data(rendered_data):
         if status_code in RETRY_CODES:
             time.sleep(RETRY_SLEEP_SEC)
             num_retries += 1
-            if num_retries < MAX_RETRIES:
-                _RAW_LOGGING("Retrying request")
-                continue
-            else:
+            if num_retries >= MAX_RETRIES:
                 return response
 
+            _RAW_LOGGING("Retrying request")
+            continue
         return response
 
 def call_response_parser(parser, response, request=None, responses=None):

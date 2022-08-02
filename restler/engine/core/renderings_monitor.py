@@ -112,7 +112,7 @@ class RenderingsMonitor(object):
         result = False
         # During the smoke test, it is possible that a request was rendered in an
         # earlier generation, but not in the latest generation.
-        for generation in range(0, self._current_fuzzing_generation):
+        for generation in range(self._current_fuzzing_generation):
             if generation in self._rendering_ids:
                 renderings = self._rendering_ids[generation]
                 req_hex = request.hex_definition
@@ -136,11 +136,10 @@ class RenderingsMonitor(object):
         @rtype : Int
 
         """
-        counter = 0
-        for request in request_list:
-            if self.is_fully_rendered_request(request, lock):
-                counter += 1
-        return counter
+        return sum(
+            bool(self.is_fully_rendered_request(request, lock))
+            for request in request_list
+        )
 
     def set_memoize_invalid_past_renderings_on(self):
         """ Internal sets feature for skipping known invalid past renderings.

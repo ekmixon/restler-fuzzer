@@ -266,11 +266,11 @@ class GarbageCollectorThread(threading.Thread):
         @rtype : Bool
 
         """
-        for type in self._destructor_types:
-            if len(self.overflowing[type]) > 0 or\
-                    len(self.dyn_objects_cache[type]) > 0:
-                return False
-        return True
+        return not any(
+            len(self.overflowing[type]) > 0
+            or len(self.dyn_objects_cache[type]) > 0
+            for type in self._destructor_types
+        )
 
     def finish(self, max_cleanup_time):
         """ Begins the final cleanup of the garbage collector
@@ -321,14 +321,14 @@ class GarbageCollectorThread(threading.Thread):
         for object_type in self.dyn_objects_cache:
             for req in self.req_collection:
                 if req.is_destructor() and \
-                len(req.consumes) == 1 and \
-                object_type in req.consumes:
+                    len(req.consumes) == 1 and \
+                    object_type in req.consumes:
                     destructors[object_type] = req
                     # Try to find the DELETE request that seems like it's trying to
                     # delete this object specifically (i.e. the final variable in the endpoint)
                     final_var = req.endpoint.split('/')[-1]
                     if RDELIM in final_var and\
-                    final_var.replace(RDELIM, "") == object_type:
+                        final_var.replace(RDELIM, "") == object_type:
                         # Found destructor where the final variable in the endpoint is
                         # the correct type of dynamic object. Stop searching.
                         break
@@ -343,13 +343,13 @@ class GarbageCollectorThread(threading.Thread):
                 self.overflowing[object_type] = []
                 self._destructor_types.append(object_type)
             n_overflowing = len(self.dyn_objects_cache[object_type]) -\
-                self._dyn_objects_cache_size
+                    self._dyn_objects_cache_size
             if n_overflowing > 0:
                 self.overflowing[object_type].extend(
                     self.dyn_objects_cache[object_type][:n_overflowing]
                 )
                 self.dyn_objects_cache[object_type] =\
-                    self.dyn_objects_cache[object_type][n_overflowing:]
+                        self.dyn_objects_cache[object_type][n_overflowing:]
 
         # apply destructors with lock RELEASED.
         self.dyn_objects_cache_lock.release()
@@ -395,20 +395,22 @@ class GarbageCollectorThread(threading.Thread):
             deleted_list = []
 
             if self.overflowing[type]:
-                CUSTOM_LOGGING("{}: Trying garbage collection of * {} * objects".\
-                format(formatting.timestamp(), len(self.overflowing[type])))
+                CUSTOM_LOGGING(
+                    f"{formatting.timestamp()}: Trying garbage collection of * {len(self.overflowing[type])} * objects"
+                )
+
                 CUSTOM_LOGGING(f"{type}: {self.overflowing[type]}")
 
             # Iterate in reverse to give priority to newest resources
             for value in reversed(self.overflowing[type]):
                 rendered_data, _ , _ = destructor.\
-                    render_current(self.req_collection.candidate_values_pool)
+                        render_current(self.req_collection.candidate_values_pool)
 
                 # replace dynamic parameters
                 fully_rendered_data = str(rendered_data)
-                fully_rendered_data = fully_rendered_data.replace(RDELIM + type + RDELIM, value)
-
-                if fully_rendered_data:
+                if fully_rendered_data := fully_rendered_data.replace(
+                    RDELIM + type + RDELIM, value
+                ):
                     try:
                         # Establish connection to the server
                         sock = messaging.HttpSock(Settings().connection_settings)

@@ -32,7 +32,7 @@ class BugBuckets(object):
         @rtype  BugBuckets
 
         """
-        if BugBuckets.__instance == None:
+        if BugBuckets.__instance is None:
             raise UninitializedError("BugBuckets not yet initialized.")
         return BugBuckets.__instance
 
@@ -40,7 +40,7 @@ class BugBuckets(object):
         if BugBuckets.__instance:
             raise NewSingletonError("Attempting to create a new singleton instance.")
 
-        self._bug_buckets = dict()
+        self._bug_buckets = {}
         BugBuckets.__instance = self
 
     def _ending_request_exists(self, sequence, bug_buckets):
@@ -56,12 +56,11 @@ class BugBuckets(object):
         @rtype : True if the last request of the sequence already exists in some bucket.
 
         """
-        # Iterate through each sequence in the bug buckets
-        for b in bug_buckets.values():
-            if b.sequence.last_request.hex_definition == sequence.last_request.hex_definition:
-                return True
-
-        return False
+        return any(
+            b.sequence.last_request.hex_definition
+            == sequence.last_request.hex_definition
+            for b in bug_buckets.values()
+        )
 
     def _get_create_once_requests(self, sequence):
         """ Helper that collects any requests used during a create once
@@ -202,7 +201,7 @@ class BugBuckets(object):
             seq_hex = sequence.hex_definition
 
             if (seq_hex not in bucket and not self._ending_request_exists(sequence, bucket)) or\
-            (reproduce and seq_hex in bucket and bucket[seq_hex].reproducible == False):
+                (reproduce and seq_hex in bucket and bucket[seq_hex].reproducible == False):
                 if reproduce:
                     (reproducible, reproduce_attempts, reproduce_successes) = self._test_bug_reproducibility(sequence, bug_code, bucket)
                 else:
@@ -258,11 +257,13 @@ class BugBuckets(object):
         try:
             d = OrderedDict()
             for k in sorted(self._bug_buckets):
-                count_repro_buckets = 0
                 bucket_class = self._bug_buckets[k]
-                for bucket in bucket_class:
-                    if bucket_class[bucket].reproducible:
-                        count_repro_buckets += 1
+                count_repro_buckets = sum(
+                    1
+                    for bucket in bucket_class
+                    if bucket_class[bucket].reproducible
+                )
+
                 d[k] = count_repro_buckets
         finally:
             if lock is not None:

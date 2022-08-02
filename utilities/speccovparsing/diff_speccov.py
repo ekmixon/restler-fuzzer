@@ -65,9 +65,7 @@ def diff_files(left_file, right_file):
     # with the matching request in the right file
     for req_id in left_file.keys():
         if req_id in right_file:
-            req_diff = diff_reqs(left_file[req_id], right_file[req_id])
-            # If there were any differences add it to the diff dict
-            if req_diff:
+            if req_diff := diff_reqs(left_file[req_id], right_file[req_id]):
                 diffs[left_file[req_id]['verb_endpoint']] = req_diff
 
     # Check for any additional requests in either the left or right file
@@ -113,11 +111,8 @@ if __name__ == '__main__':
                    "Skipping diff for this file!")
             continue
 
-        diff = diff_files(left_json, right_json)
-        if diff:
-            output.append(spec)
-            output.append(diff)
-
+        if diff := diff_files(left_json, right_json):
+            output.extend((spec, diff))
     output_file = args.output_file or 'spec_diffs.json'
     with open(output_file, 'w') as f_diffs:
         json.dump(output, f_diffs, indent=4)

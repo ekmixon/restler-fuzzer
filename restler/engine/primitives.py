@@ -87,11 +87,9 @@ class CandidateValues(object):
         final_values = []
         if quoted:
             # Quote each value
-            for val in self.values:
-                final_values.append(f'"{val}"')
-        else:
-            if self.values:
-                final_values.extend(self.values)
+            final_values.extend(f'"{val}"' for val in self.values)
+        elif self.values:
+            final_values.extend(self.values)
         if self.unquoted_values:
             final_values.extend(self.unquoted_values)
         return final_values
@@ -139,7 +137,7 @@ class CandidateValuesPool(object):
         for primitive in self.supported_primitive_types:
             self.candidate_values[primitive] = CandidateValues()
         for primitive in self.supported_primitive_dict_types:
-            self.candidate_values[primitive] = dict()
+            self.candidate_values[primitive] = {}
 
         self.per_endpoint_candidate_values = {}
 
@@ -154,7 +152,7 @@ class CandidateValuesPool(object):
         @rtype : None
 
         """
-        today = datetime.datetime.today()
+        today = datetime.datetime.now()
         # Make sure we add enough days to account for a long fuzzing run
         days_to_add = datetime.timedelta(days = (Settings().time_budget / 24) + 1)
         future = today + days_to_add
@@ -258,7 +256,7 @@ class CandidateValuesPool(object):
             # First check for dict type. This can occur if get_candidate_values
             # was called on a dict type without a specific tag/key.
             if isinstance(candidate_vals, dict):
-                retval = dict()
+                retval = {}
                 for key in candidate_vals:
                     retval[key] = candidate_vals[key].get_flattened_and_quoted_values(quoted)
             else:
@@ -271,20 +269,25 @@ class CandidateValuesPool(object):
 
         if primitive_name not in candidate_values:
             print ("\n\n\n\t *** Can't get unsupported primitive: {}\n\n\n".\
-                   format(primitive_name))
+                       format(primitive_name))
             raise CandidateValueException
 
         try:
             if tag:
-                if tag in candidate_values[primitive_name]:
-                   return _flatten_and_quote_candidate_values(candidate_values[primitive_name][tag])
-                # tag not specified in per_endpoint values, try sending from default list
-                return _flatten_and_quote_candidate_values(self.candidate_values[primitive_name][tag])
-            else:
-                if primitive_name in candidate_values:
-                    return _flatten_and_quote_candidate_values(candidate_values[primitive_name])
-                # primitive value not specified in per_endpoint values, try sending from default list
-                return _flatten_and_quote_candidate_values(self.candidate_values[primitive_name])
+                return (
+                    _flatten_and_quote_candidate_values(
+                        candidate_values[primitive_name][tag]
+                    )
+                    if tag in candidate_values[primitive_name]
+                    else _flatten_and_quote_candidate_values(
+                        self.candidate_values[primitive_name][tag]
+                    )
+                )
+
+            if primitive_name in candidate_values:
+                return _flatten_and_quote_candidate_values(candidate_values[primitive_name])
+            # primitive value not specified in per_endpoint values, try sending from default list
+            return _flatten_and_quote_candidate_values(self.candidate_values[primitive_name])
         except KeyError:
             raise CandidateValueException
 
@@ -370,11 +373,11 @@ class CandidateValuesPool(object):
                 self.per_endpoint_candidate_values[request_id] = {}
                 for primitive in self.supported_primitive_types:
                     if primitive in self.supported_primitive_dict_types:
-                        self.per_endpoint_candidate_values[request_id][primitive] = dict()
+                        self.per_endpoint_candidate_values[request_id][primitive] = {}
                     else:
                         self.per_endpoint_candidate_values[request_id][primitive] = CandidateValues()
                 self.per_endpoint_candidate_values[request_id] =\
-                    self._set_custom_values(
+                        self._set_custom_values(
                         self.per_endpoint_candidate_values[request_id],
                         per_endpoint_custom_mutations[request_id]
                     )
@@ -397,9 +400,7 @@ def restler_static_string(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
     examples = None
     param_name = None
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
@@ -422,15 +423,9 @@ def restler_fuzzable_string(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
 def restler_fuzzable_int(*args, **kwargs):
@@ -450,15 +445,9 @@ def restler_fuzzable_int(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
 
@@ -479,15 +468,9 @@ def restler_fuzzable_bool(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
 
@@ -508,15 +491,9 @@ def restler_fuzzable_number(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
 
@@ -537,15 +514,9 @@ def restler_fuzzable_delim(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
 
@@ -571,14 +542,10 @@ def restler_fuzzable_group(*args, **kwargs):
         enum_vals = args[1]
     except IndexError:
         enum_vals = [""]
-    enum_vals = list(map(lambda x: '{}'.format(x), enum_vals))
+    enum_vals = list(map(lambda x: f'{x}', enum_vals))
 
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
     param_name = None
     return sys._getframe().f_code.co_name, field_name, enum_vals, quoted, examples, param_name
 
@@ -600,19 +567,13 @@ def restler_fuzzable_uuid4(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
 
-def restler_fuzzable_datetime(*args, **kwargs) :
+def restler_fuzzable_datetime(*args, **kwargs):
     """ datetime primitive
 
     @param args: The argument with which the primitive is defined in the block
@@ -629,18 +590,12 @@ def restler_fuzzable_datetime(*args, **kwargs) :
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
-def restler_fuzzable_date(*args, **kwargs) :
+def restler_fuzzable_date(*args, **kwargs):
     """ date primitive
 
     @param args: The argument with which the primitive is defined in the block
@@ -658,18 +613,12 @@ def restler_fuzzable_date(*args, **kwargs) :
     """
     # datetime works the same as date
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
-def restler_fuzzable_object(*args, **kwargs) :
+def restler_fuzzable_object(*args, **kwargs):
     """ object primitive ({})
 
     @param args: The argument with which the primitive is defined in the block
@@ -686,15 +635,9 @@ def restler_fuzzable_object(*args, **kwargs) :
     """
 
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
-    examples=None
-    if EXAMPLES_ARG in kwargs:
-        examples = kwargs[EXAMPLES_ARG]
-    param_name = None
-    if PARAM_NAME_ARG in kwargs:
-        param_name = kwargs[PARAM_NAME_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
+    examples = kwargs.get(EXAMPLES_ARG)
+    param_name = kwargs.get(PARAM_NAME_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
 
 def restler_multipart_formdata(*args, **kwargs):
@@ -715,9 +658,7 @@ def restler_multipart_formdata(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
     examples = None
     param_name = None
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
@@ -740,9 +681,7 @@ def restler_custom_payload(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
     examples = None
     param_name = None
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
@@ -765,9 +704,7 @@ def restler_custom_payload_header(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
     examples = None
     param_name = None
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
@@ -790,9 +727,7 @@ def restler_custom_payload_query(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
     examples = None
     param_name = None
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name
@@ -814,14 +749,10 @@ def restler_custom_payload_uuid4_suffix(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
     examples = None
     param_name = None
-    writer_variable = None
-    if WRITER_VARIABLE_ARG in kwargs:
-        writer_variable = kwargs[WRITER_VARIABLE_ARG]
+    writer_variable = kwargs.get(WRITER_VARIABLE_ARG)
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name, writer_variable
 
 def restler_refreshable_authentication_token(*args, **kwargs):
@@ -841,9 +772,7 @@ def restler_refreshable_authentication_token(*args, **kwargs):
 
     """
     field_name = args[0]
-    quoted = False
-    if QUOTED_ARG in kwargs:
-        quoted = kwargs[QUOTED_ARG]
+    quoted = kwargs.get(QUOTED_ARG, False)
     examples = None
     param_name = None
     return sys._getframe().f_code.co_name, field_name, quoted, examples, param_name

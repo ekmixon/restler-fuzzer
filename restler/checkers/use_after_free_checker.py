@@ -86,8 +86,7 @@ class UseAfterFreeChecker(CheckerBase):
             if request.consumes == destructed_types:
                 consumers.append(copy.copy(request))
 
-        self._checker_log.checker_print("Found * {} * consumers.".\
-                            format(len(consumers)))
+        self._checker_log.checker_print(f"Found * {len(consumers)} * consumers.")
 
         # Try any consumer of the deleted types.
         for request in consumers:
@@ -109,8 +108,7 @@ class UseAfterFreeChecker(CheckerBase):
 
         """
         request = seq.last_request
-        for rendered_data, parser,_ in\
-            request.render_iter(self._req_collection.candidate_values_pool,
+        for rendered_data, parser,_ in request.render_iter(self._req_collection.candidate_values_pool,
                                 skip=request._current_combination_id):
             # Hold the lock (because other workers may be rendering the same
             # request) and check whether the current rendering is known from the
@@ -124,8 +122,7 @@ class UseAfterFreeChecker(CheckerBase):
 
             # Skip the loop and don't forget to increase the counter.
             if should_skip:
-                RAW_LOGGING("Skipping rendering: {}".\
-                            format(request._current_combination_id))
+                RAW_LOGGING(f"Skipping rendering: {request._current_combination_id}")
                 request._current_combination_id += 1
                 continue
 

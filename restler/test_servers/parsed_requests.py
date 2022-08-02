@@ -47,12 +47,13 @@ class ParsedRequest:
         return hash((self.method, self.endpoint, self.body))
 
     def __eq__(self, other):
-        if not isinstance(other, ParsedRequest):
-            return False
-
-        return self.method == other.method and\
-               self.endpoint == other.endpoint and\
-               self.body == other.body
+        return (
+            self.method == other.method
+            and self.endpoint == other.endpoint
+            and self.body == other.body
+            if isinstance(other, ParsedRequest)
+            else False
+        )
 
     @property
     def authorization_token(self):
@@ -116,11 +117,12 @@ class ParsedSequence:
         self.checker_requests = OrderedDict()
 
     def __eq__(self, other):
-        if not isinstance(other, ParsedSequence):
-            return False
-
-        return self.requests == other.requests and\
-               self.checker_requests == other.checker_requests
+        return (
+            self.requests == other.requests
+            and self.checker_requests == other.checker_requests
+            if isinstance(other, ParsedSequence)
+            else False
+        )
 
     def __iter__(self):
         return iter(self.requests)

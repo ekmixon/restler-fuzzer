@@ -58,8 +58,7 @@ class RestlerSettingsTest(unittest.TestCase):
                         }
                     }
                 }
-        user_args = {'producer_timing_delay' : 1}
-        user_args.update(settings_file)
+        user_args = {'producer_timing_delay' : 1} | settings_file
         settings = RestlerSettings(user_args)
         # Set in settings file
         self.assertEqual(3, settings.get_producer_timing_delay(hex_def(request_endpoint1)))
@@ -94,8 +93,7 @@ class RestlerSettingsTest(unittest.TestCase):
                     },
                     'max_async_resource_creation_time': 6
                 }
-        user_args = {}
-        user_args.update(settings_file)
+        user_args = {} | settings_file
         settings = RestlerSettings(user_args)
         self.assertEqual(6, settings.get_max_async_resource_creation_time(hex_def(request_endpoint1)))
         # producer timing delay > max async
@@ -120,11 +118,10 @@ class RestlerSettingsTest(unittest.TestCase):
         self.assertEqual(15, settings.max_request_execution_time)
 
     def test_max_request_execution_time(self):
-        user_args = {'max_request_execution_time': 15}
         settings_file = {
             'max_request_execution_time' : 12
         }
-        user_args.update(settings_file)
+        user_args = {'max_request_execution_time': 15} | settings_file
         settings = RestlerSettings(user_args)
         self.assertEqual(12, settings.max_request_execution_time)
 
@@ -141,7 +138,7 @@ class RestlerSettingsTest(unittest.TestCase):
         settings_file = {
             'max_request_execution_time' : restler_settings.MAX_REQUEST_EXECUTION_TIME_MAX+1
         }
-        user_args.update(settings_file)
+        user_args |= settings_file
         with self.assertRaises(InvalidValueError):
             RestlerSettings(user_args)
 

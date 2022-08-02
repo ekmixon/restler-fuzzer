@@ -121,22 +121,21 @@ class InvalidDynamicObjectChecker(CheckerBase):
         # [3] = dependency (if more exist), [4] = data_until_next_dependency ...
         data = str(data).split(dependencies.RDELIM)
 
-        consumer_types = []
-        # Save off the valid dependencies.
-        # Iterate through data list; starting at first dependency and skipping
-        # to each subsequent dependency
-        for i in range(1, len(data), 2):
-            consumer_types.append(dependencies.get_variable(data[i]))
+        consumer_types = [
+            dependencies.get_variable(data[i]) for i in range(1, len(data), 2)
+        ]
 
         default_invalids = [f'{VALID_REPLACE_STR}?injected_query_string=123',\
-                            f'{VALID_REPLACE_STR}/?/',\
-                            f'{VALID_REPLACE_STR}??',\
-                            f'{VALID_REPLACE_STR}/{VALID_REPLACE_STR}',\
-                            '{}']
+                                f'{VALID_REPLACE_STR}/?/',\
+                                f'{VALID_REPLACE_STR}??',\
+                                f'{VALID_REPLACE_STR}/{VALID_REPLACE_STR}',\
+                                '{}']
 
-        invalid_strs = []
-        if not Settings().get_checker_arg(self._friendly_name, 'no_defaults'):
-            invalid_strs = default_invalids
+        invalid_strs = (
+            []
+            if Settings().get_checker_arg(self._friendly_name, 'no_defaults')
+            else default_invalids
+        )
 
         user_invalids = Settings().get_checker_arg(self._friendly_name, 'invalid_objects')
         if isinstance(user_invalids, list):

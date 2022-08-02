@@ -61,7 +61,7 @@ def test_spec(ip, port, host, use_ssl, restler_dll_path):
 
     """
     with usedir(RESTLER_TEMP_DIR):
-        compile_dir = Path(f'Compile')
+        compile_dir = Path('Compile')
         grammar_file_path = compile_dir.joinpath('grammar.py')
         dictionary_file_path = compile_dir.joinpath('dict.json')
         settings_file_path = compile_dir.joinpath('engine_settings.json')

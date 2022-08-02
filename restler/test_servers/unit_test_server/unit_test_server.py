@@ -42,9 +42,7 @@ class UnitTestServer(TestServerBase):
 
         """
         if NAMESPACE_RULE_RESOURCE not in dyn_objects:
-            if auth_token is not None and auth_token == VALID_UNIT_TEST_TOKEN:
-                return True
-            return False
+            return auth_token is not None and auth_token == VALID_UNIT_TEST_TOKEN
         return True
 
     def parse_message(self, message):

@@ -91,7 +91,6 @@ class RenderedRequestStats(object):
                             f"Error setting request stats for text: {request_text}",
                             print_to_console=True
                         )
-            pass
 
     def set_response_stats(self, final_request_response, final_response_datetime):
         """ Helper to set the response headers and body.
@@ -129,8 +128,7 @@ class SmokeTestStats(object):
         if len(sequence_prefix.requests) > 0:
             prefix_ids = []
             for c in sequence_prefix.current_combination_id:
-                prefix_id = {}
-                prefix_id["id"] = c
+                prefix_id = {"id": c}
                 if self.valid:
                     prefix_id["valid"] = self.valid
                 prefix_ids.append(prefix_id)
@@ -230,7 +228,7 @@ class Request(object):
         """
         self._hex_definition = str_to_hex_def(str(self.definition))
 
-        request_id_component = requestId if requestId else self.endpoint
+        request_id_component = requestId or self.endpoint
         self._request_id = str_to_hex_def(request_id_component)
         self._method_endpoint_hex_definition = str_to_hex_def(self.method + request_id_component)
 
@@ -246,7 +244,7 @@ class Request(object):
 
         """
         if isinstance(line[1], str)\
-        and line[1].startswith(dependencies.RDELIM):
+            and line[1].startswith(dependencies.RDELIM):
             return line[1].split(dependencies.RDELIM)[1]
         return None
 
@@ -260,19 +258,18 @@ class Request(object):
         """
         # Look for reader placeholders
         for line in self.definition:
-            var_name = self._get_var_name_from_definition_line(line)
-            if var_name:
+            if var_name := self._get_var_name_from_definition_line(line):
                 self._consumes.add(var_name)
         # Also look for reader placeholders in the pre_send section
         if bool(self.metadata) and 'pre_send' in self.metadata\
-        and 'dependencies' in self.metadata['pre_send']:
+            and 'dependencies' in self.metadata['pre_send']:
             for reader_var in self.metadata['pre_send']['dependencies']:
                 var_name = reader_var.split(dependencies.RDELIM)[1]
                 self._consumes.add(var_name)
 
         # Look for writer placeholders
         if bool(self.metadata) and 'post_send' in self.metadata\
-        and 'dependencies' in self.metadata['post_send']:
+            and 'dependencies' in self.metadata['post_send']:
             for var_name in self.metadata['post_send']['dependencies']:
                 self._produces.add(var_name)
 
@@ -352,10 +349,7 @@ class Request(object):
             return {}
 
         metadata = self._definition[-1]
-        if isinstance(metadata, dict):
-            return metadata
-
-        return {}
+        return metadata if isinstance(metadata, dict) else {}
 
     @property
     def method(self):
@@ -505,9 +499,7 @@ class Request(object):
         @rtype : Bool
 
         """
-        if 'DELETE' in self.method:
-            return True
-        return False
+        return 'DELETE' in self.method
 
     def is_resource_generator(self):
         """ Checks whether the current request object instance is a producer that
@@ -518,11 +510,12 @@ class Request(object):
         @rtype : Bool
 
         """
-        if 'POST' in self.method or 'PUT' in self.method:
-            if bool(self.metadata) and 'post_send' in self.metadata\
-            and 'parser' in self.metadata['post_send']:
-                return True
-        return False
+        return (
+            ('POST' in self.method or 'PUT' in self.method)
+            and bool(self.metadata)
+            and 'post_send' in self.metadata
+            and 'parser' in self.metadata['post_send']
+        )
 
     def set_id_values_for_create_once_dynamic_objects(self, dynamic_object_values, rendered_sequence):
         """ Sets the ID values for specified dynamic object values in the request definition.
@@ -593,10 +586,14 @@ class Request(object):
         @rtype : Int
 
         """
-        for i, line in enumerate(self._definition):
-            if isinstance(line[1], str) and 'HTTP/1.1' in line[1]:
-                return i + 1
-        return -1
+        return next(
+            (
+                i + 1
+                for i, line in enumerate(self._definition)
+                if isinstance(line[1], str) and 'HTTP/1.1' in line[1]
+            ),
+            -1,
+        )
 
     def get_schema_combinations(self):
         """ A generator that lazily iterates over a pool of schema combinations
@@ -620,22 +617,16 @@ class Request(object):
         example_payloads = Settings().example_payloads
         if example_payloads is not None and self.examples is not None:
             tested_example_payloads = True
-            for ex in self.get_example_payloads(example_payloads):
-                yield ex
-
+            yield from self.get_example_payloads(example_payloads)
         tested_param_combinations = False
         header_param_combinations = Settings().header_param_combinations
         if header_param_combinations is not None:
             tested_param_combinations = True
-            for hpc in self.get_header_param_combinations(header_param_combinations):
-                yield hpc
-
+            yield from self.get_header_param_combinations(header_param_combinations)
         query_param_combinations = Settings().query_param_combinations
         if query_param_combinations is not None:
             tested_param_combinations = True
-            for hpc in self.get_query_param_combinations(query_param_combinations):
-                yield hpc
-
+            yield from self.get_query_param_combinations(query_param_combinations)
         if not (tested_param_combinations or tested_example_payloads):
             yield self
 
@@ -676,39 +667,35 @@ class Request(object):
                     values = [(primitives.restler_fuzzable_uuid4, True)]
                 else:
                     values = [(primitives.restler_fuzzable_uuid4, False)]
-            # Handle enums that have a list of values instead of one default val
             elif primitive_type == primitives.FUZZABLE_GROUP:
-                if quoted:
-                    values = [f'"{val}"' for val in default_val]
-                else:
-                    values = list(default_val)
-            # Handle static whose value is the field name
+                values = [f'"{val}"' for val in default_val] if quoted else list(default_val)
             elif primitive_type == primitives.STATIC_STRING:
                 val = default_val
-                if val == None:
+                if val is None:
                     # the examplesChecker may inject None/null, so replace these with the string 'null'
-                    logger.raw_network_logging(f"Warning: there is a None value in a STATIC_STRING.")
+                    logger.raw_network_logging(
+                        "Warning: there is a None value in a STATIC_STRING."
+                    )
+
                     val = 'null'
                     # Do not quote null values.
                     quoted = False
                 if quoted:
                     val = f'"{val}"'
                 values = [val]
-            # Handle multipart form data
             elif primitive_type == primitives.FUZZABLE_MULTIPART_FORMDATA:
                 try:
                     current_fuzzable_values = candidate_values_pool.\
-                        get_candidate_values(primitive_type, request_id=self._request_id, tag=default_val, quoted=quoted)
+                            get_candidate_values(primitive_type, request_id=self._request_id, tag=default_val, quoted=quoted)
                     values = [multipart_formdata.render(current_fuzzable_values)]
                 except primitives.CandidateValueException:
                     _raise_dict_err(primitive_type, default_val)
                 except Exception as err:
                     _handle_exception(primitive_type, default_val, err)
-            # Handle custom (user defined) static payload
             elif primitive_type == primitives.CUSTOM_PAYLOAD:
                 try:
                     current_fuzzable_values = candidate_values_pool.\
-                        get_candidate_values(primitive_type, request_id=self._request_id, tag=field_name, quoted=quoted)
+                            get_candidate_values(primitive_type, request_id=self._request_id, tag=field_name, quoted=quoted)
                     # handle case where custom payload have more than one values
                     if isinstance(current_fuzzable_values, list):
                         values = current_fuzzable_values
@@ -718,12 +705,13 @@ class Request(object):
                     _raise_dict_err(primitive_type, field_name)
                 except Exception as err:
                     _handle_exception(primitive_type, field_name, err)
-            # Handle custom (user defined) static payload on header or query
-            elif (primitive_type == primitives.CUSTOM_PAYLOAD_HEADER or\
-                  primitive_type == primitives.CUSTOM_PAYLOAD_QUERY):
+            elif primitive_type in [
+                primitives.CUSTOM_PAYLOAD_HEADER,
+                primitives.CUSTOM_PAYLOAD_QUERY,
+            ]:
                 try:
                     current_fuzzable_values = candidate_values_pool.\
-                        get_candidate_values(primitive_type, request_id=self._request_id, tag=field_name, quoted=quoted)
+                            get_candidate_values(primitive_type, request_id=self._request_id, tag=field_name, quoted=quoted)
                     # handle case where custom payload have more than one values
                     if isinstance(current_fuzzable_values, list):
                         values = current_fuzzable_values
@@ -733,11 +721,10 @@ class Request(object):
                     _raise_dict_err(primitive_type, field_name)
                 except Exception as err:
                     _handle_exception(primitive_type, field_name, err)
-            # Handle custom (user defined) static payload with uuid4 suffix
             elif primitive_type == primitives.CUSTOM_PAYLOAD_UUID4_SUFFIX:
                 try:
                     current_fuzzable_value = candidate_values_pool.\
-                        get_candidate_values(primitive_type, request_id=self._request_id, tag=field_name, quoted=quoted)
+                            get_candidate_values(primitive_type, request_id=self._request_id, tag=field_name, quoted=quoted)
 
                     # Replace the custom payload type with the specified value, but keep all others the same
                     # Assert if the request block does not match the expected definition
@@ -756,7 +743,6 @@ class Request(object):
                     _handle_exception(primitive_type, field_name, err)
             elif primitive_type == primitives.REFRESHABLE_AUTHENTICATION_TOKEN:
                 values = [primitives.restler_refreshable_authentication_token]
-            # Handle all the rest
             else:
                 values = candidate_values_pool.get_fuzzable_values(primitive_type, default_val, self._request_id, quoted, examples)
 
@@ -767,15 +753,16 @@ class Request(object):
                 _raise_dict_err(primitive_type, current_fuzzable_tag)
 
             # When testing all combinations, update tracked parameters.
-            if Settings().fuzzing_mode == 'test-all-combinations':
+            if (
+                Settings().fuzzing_mode == 'test-all-combinations'
+                and len(values) > 1
+            ):
                 param_idx = len(fuzzable)
-                # Only track the parameter if there are multiple values being combined
-                if len(values) > 1:
-                    if not field_name:
-                        field_name = f"tracked_param_{param_idx}"
-                    if field_name not in tracked_parameters:
-                        tracked_parameters[field_name] = []
-                    tracked_parameters[field_name].append(param_idx)
+                if not field_name:
+                    field_name = f"tracked_param_{param_idx}"
+                if field_name not in tracked_parameters:
+                    tracked_parameters[field_name] = []
+                tracked_parameters[field_name].append(param_idx)
 
             fuzzable.append(values)
 
@@ -841,7 +828,7 @@ class Request(object):
             parser = None
             # If request had post_send metadata, register parsers etc.
             if bool(self.metadata) and 'post_send' in self.metadata\
-            and 'parser' in self.metadata['post_send']:
+                and 'parser' in self.metadata['post_send']:
                 parser = self.metadata['post_send']['parser']
 
             fuzzable, tracked_parameters = self.init_fuzzable_values(req.definition, candidate_values_pool, preprocessing)
@@ -855,7 +842,7 @@ class Request(object):
             while next_combination < skip:
                 try:
                     next(combinations_pool)
-                    next_combination = next_combination + 1
+                    next_combination += 1
                 except StopIteration:
                     break
                 if next_combination == skip:
@@ -910,9 +897,7 @@ class Request(object):
             return self._total_feasible_combinations
 
         # Otherwise, do calculation
-        counter = 0
-        for combination in self.render_iter(candidate_values_pool):
-            counter += 1
+        counter = sum(1 for _ in self.render_iter(candidate_values_pool))
         self._total_feasible_combinations = counter
 
         return self._total_feasible_combinations
@@ -1018,13 +1003,12 @@ class Request(object):
             query_schema = QueryList(param=param_list)
             query_blocks = query_schema.get_blocks()
 
-            new_request = self.substitute_query(query_blocks)
-            if new_request:
+            if new_request := self.substitute_query(query_blocks):
                 yield new_request
             else:
                 # For malformed requests, it is possible that the place to insert parameters is not found,
                 # In such cases, skip the combination.
-                logger.write_to_main(f"Warning: could not substitute query parameters.")
+                logger.write_to_main("Warning: could not substitute query parameters.")
 
     def get_header_param_combinations(self, header_param_combinations_setting):
         """
@@ -1035,13 +1019,12 @@ class Request(object):
             headers_schema = HeaderList(param=param_list)
             header_blocks = headers_schema.get_blocks()
 
-            new_request = self.substitute_headers(header_blocks)
-            if new_request:
+            if new_request := self.substitute_headers(header_blocks):
                 yield new_request
             else:
                 # For malformed requests, it is possible that the place to insert parameters is not found,
                 # In such cases, skip the combination.
-                logger.write_to_main(f"Warning: could not substitute header parameters.")
+                logger.write_to_main("Warning: could not substitute header parameters.")
 
     def get_example_payloads(self, example_payloads_setting):
         """
@@ -1056,14 +1039,13 @@ class Request(object):
                 error_message=f"ERROR: ill-formed example {self.endpoint} {self.method}."
                 logger.write_to_main(error_message)
                 raise Exception(error_message)
-            body_example = self.examples.body_examples[payload_idx]
             query_example = self.examples.query_examples[payload_idx]
             # TODO: header examples are not supported yet.
             #  header_example = examples.header_examples[payload_idx]
 
             # Copy the request definition and reset it here.
             body_blocks = None
-            if body_example:
+            if body_example := self.examples.body_examples[payload_idx]:
                 body_blocks = body_example.get_blocks()
             query_blocks = query_example.get_blocks()
 
@@ -1142,8 +1124,7 @@ class Request(object):
                     return query_end_index, query_end_index
                 else:
                     return query_param_start_index, query_end_index
-        else:
-            return -1, -1
+        return -1, -1
 
     def substitute_body(self, new_body_blocks):
         """ Substitute the body part in the old request with the new body
@@ -1196,9 +1177,8 @@ class Request(object):
 
         # Handle case where there are no query parameters in the default schema.
         # Query parameters can always be added after the path.
-        if start_idx == end_idx:
-            if new_query_blocks:
-                new_query_blocks.insert(0, primitives.restler_static_string('?'))
+        if start_idx == end_idx and new_query_blocks:
+            new_query_blocks.insert(0, primitives.restler_static_string('?'))
 
         # If the new query is empty, remove the '?' if it exists
         if not new_query_blocks and (start_idx != end_idx):
@@ -1221,7 +1201,7 @@ class GlobalRequestCollection(object):
 
     @staticmethod
     def Instance():
-        if GlobalRequestCollection.__instance == None:
+        if GlobalRequestCollection.__instance is None:
             raise Exception("Request Collection not yet initialized.")
         return GlobalRequestCollection.__instance
 
@@ -1257,7 +1237,7 @@ class RequestCollection(object):
         self._requests = []
 
         # Groupings of requests with their request ids
-        self._request_id_collection = dict()
+        self._request_id_collection = {}
 
         # pointer to shared global pool of candidate values
         self.candidate_values_pool = primitives.CandidateValuesPool()

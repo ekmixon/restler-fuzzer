@@ -57,11 +57,7 @@ class FuzzingConfig(object):
                 self.fuzz_strategy = config_json['fuzz_strategy']
             if 'max_combination' in config_json:
                 self.max_combination = config_json['max_combination']
-            if 'max_depth' in config_json:
-                self.max_depth = config_json['max_depth']
-            else:
-                self.max_depth = 10
-
+            self.max_depth = config_json['max_depth'] if 'max_depth' in config_json else 10
             if self.use_examples or self.use_response or self.use_embedded:
                 self.merge_fuzzable_values = True
             elif self.fuzz_strategy != 'restler':
@@ -107,14 +103,12 @@ class FuzzingConfig(object):
 
         # use example value as default (if exist)
         if self.use_examples_for_default and self.get_examples_values:
-            examples_values = self.get_examples_values(tag)
-            if examples_values:
+            if examples_values := self.get_examples_values(tag):
                 default_value = list(examples_values)[0]
 
         # use response value as default (if exist)
         if self.use_response_for_default and self.get_response_values:
-            response_values = self.get_response_values(tag, hint)
-            if response_values:
+            if response_values := self.get_response_values(tag, hint):
                 default_value = response_values[0]
 
         return default_value

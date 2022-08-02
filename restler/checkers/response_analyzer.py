@@ -47,10 +47,7 @@ class ResponseTracker():
         @rtype:  Int
 
         """
-        total = 0
-        for c in self._codes:
-            total += len(self._codes[c])
-        return total
+        return sum(len(self._codes[c]) for c in self._codes)
 
     @property
     def num_valid(self):
@@ -83,7 +80,7 @@ class ResponseTracker():
         body = get_response_body(response.to_str)
 
         if test_round:
-            status_code = '{}_{}'.format(test_round, status_code)
+            status_code = f'{test_round}_{status_code}'
         else:
             status_code = response.status_code
 
@@ -105,11 +102,7 @@ class ResponseTracker():
 
         """
         # get the error code and error message
-        if 'error' in body:
-            error = body['error']
-        else:
-            error = body
-
+        error = body['error'] if 'error' in body else body
         if ('code' not in error) or ('message' not in error):
             self._update_record('misc', error)
             return None
@@ -138,14 +131,17 @@ class ResponseTracker():
         # try if is XML
         xml_body_start = response.find('<body>')
         xml_body_end = response.find('</body>')
-        if xml_body_start != -1 and xml_body_end != -1:
-            if xml_body_end > xml_body_start:
-                xml_body = response[xml_body_start:xml_body_end]
-                self._update_record('{}_XML'.format(status_code), xml_body)
-                return
+        if (
+            xml_body_start != -1
+            and xml_body_end != -1
+            and xml_body_end > xml_body_start
+        ):
+            xml_body = response[xml_body_start:xml_body_end]
+            self._update_record(f'{status_code}_XML', xml_body)
+            return
 
         # don't know
-        self._update_record('{}_UnknownResponse'.format(status_code), response)
+        self._update_record(f'{status_code}_UnknownResponse', response)
 
     def _update_record(self, code, msg):
         """ Update the tracker record
@@ -196,10 +192,7 @@ class ResponseTracker():
         msg = replace_number_chunks(msg, '?')
 
         # hash
-        if self._verbose:
-            return msg
-        else:
-            return hash(msg)
+        return msg if self._verbose else hash(msg)
 
     def show(self, msg=''):
         """ Print out the tracker statistics
@@ -211,18 +204,18 @@ class ResponseTracker():
         @rtype:  None
 
         """
-        self._log('Tracker begin ({}):'.format(msg))
-        self._log('    Valid: {}'.format(self._valid_cnt))
-        self._log('    Invalid: {}'.format(self._invalid_cnt))
+        self._log(f'Tracker begin ({msg}):')
+        self._log(f'    Valid: {self._valid_cnt}')
+        self._log(f'    Invalid: {self._invalid_cnt}')
         for c in self._codes:
             detail = ''
             total = 0
             for msg in self._codes[c]:
                 cnt = self._codes[c][msg]
-                detail += ' {}'.format(cnt)
+                detail += f' {cnt}'
                 total += cnt
-            desp = '{}:{}'.format(total, detail)
-            self._log('    {}: {} ({})'.format(c, len(self._codes[c]), desp))
+            desp = f'{total}:{detail}'
+            self._log(f'    {c}: {len(self._codes[c])} ({desp})')
         self._log('Tracker end')
 
     def show_detail(self, msg=''):
@@ -235,17 +228,17 @@ class ResponseTracker():
         @rtype:  None
 
         """
-        self._log('Tracker begin ({}):'.format(msg))
-        self._log('    Valid: {}'.format(self._valid_cnt))
-        self._log('    Invalid: {}'.format(self._invalid_cnt))
+        self._log(f'Tracker begin ({msg}):')
+        self._log(f'    Valid: {self._valid_cnt}')
+        self._log(f'    Invalid: {self._invalid_cnt}')
         for c in self._codes:
             total = 0
-            self._log('    {}: {}'.format(c, len(self._codes[c])))
+            self._log(f'    {c}: {len(self._codes[c])}')
             for msg in self._codes[c]:
                 cnt = self._codes[c][msg]
-                detail = '      ({}) {}'.format(cnt, msg)
+                detail = f'      ({cnt}) {msg}'
                 self._log(detail)
                 total += cnt
-            self._log('      Total: {}'.format(total))
+            self._log(f'      Total: {total}')
 
         self._log('Tracker end')
